@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
         final int[] charUpgradeCost={700,900,650};
         float[] playerX={.27f,.39f,.51f};
         float playerY=.77f;
-        boolean joystickActive=false;
+        boolean joystickActive=false, joystickTouch=false;
         float joystickKnobX=0,joystickKnobY=0;
         final float JOY_R=58f;
         final int[] clothes={Color.rgb(76,155,91),Color.rgb(145,75,178),Color.rgb(61,112,167)};
@@ -62,6 +62,23 @@ public class MainActivity extends Activity {
         String toast="Chọn màn để bắt đầu";
 
         FishingGame(Context c){ super(c); p.setTypeface(Typeface.create("sans",Typeface.BOLD)); setFocusable(true); }
+
+        int mapRequiredLevel(int i){
+            int[] req={1,20,40,60,80,100};
+            return req[Math.max(0,Math.min(req.length-1,i))];
+        }
+
+        boolean isMapUnlocked(int i){
+            return levels[selected]>=mapRequiredLevel(i);
+        }
+
+        void resetJoystick(){
+            joystickActive=false;
+            joystickTouch=false;
+            float jx=95, jy=getHeight()-170;
+            joystickKnobX=jx;
+            joystickKnobY=jy;
+        }
 
         @Override protected void onDraw(Canvas c){
             int w=getWidth(),h=getHeight();
@@ -147,7 +164,7 @@ public class MainActivity extends Activity {
                 p.setColor(Color.rgb(67,148,169));c.drawRect(l+10,t+43,r-10,t+70,p);
                 for(int k=0;k<4;k++){p.setColor(Color.rgb(87,153,91));c.drawCircle(l+25+k*48,t+30,22+(k%2)*5,p);}
                 txt(c,mapNames[i],l+15,t+98,16,Color.WHITE);txt(c,req[i],l+15,t+119,12,Color.YELLOW);
-                button(c,r-88,t+88,r-15,t+132,"VÀO",i<=map);
+                button(c,r-88,t+88,r-15,t+132,"VÀO",isMapUnlocked(i));
             }
             button(c,25,h-62,170,h-18,"VỀ SẢNH",false);
         }
@@ -225,7 +242,7 @@ public class MainActivity extends Activity {
             bgLake(c,w,h);
             panel(c,18,18,315,88,Color.argb(200,16,20,23));
             txt(c,"Lv 80   con ng",32,40,15,Color.WHITE);txt(c,"3 NGƯỜI CÙNG CÂU",32,60,12,Color.WHITE);
-            txt(c,"Cá đang câu: "+fishNames[fishIdx],32,78,11,Color.YELLOW);
+            txt(c,"Màn "+(map+1)+" • Cá đang câu: "+fishNames[fishIdx],32,78,11,Color.YELLOW);
 
             panel(c,w*.36f,18,w*.70f,86,Color.argb(210,13,18,22));
             txt(c,"Cá "+fishNames[fishIdx]+"   Lv 100",w*.39f,43,16,Color.WHITE);
@@ -326,9 +343,24 @@ public class MainActivity extends Activity {
             float x=e.getX(),y=e.getY();int w=getWidth(),h=getHeight();
             if(screen==FISHING){
                 float jx=95, jy=h-170;
-                if(e.getAction()==MotionEvent.ACTION_DOWN || e.getAction()==MotionEvent.ACTION_MOVE){
+                int action=e.getActionMasked();
+
+                if(action==MotionEvent.ACTION_CANCEL){
+                    resetJoystick();
+                    invalidate();
+                    return true;
+                }
+
+                if(action==MotionEvent.ACTION_UP && joystickTouch){
+                    resetJoystick();
+                    invalidate();
+                    return true;
+                }
+
+                if(action==MotionEvent.ACTION_DOWN || action==MotionEvent.ACTION_MOVE){
                     float dx=x-jx, dy=y-jy;
-                    if(joystickActive || (dx*dx+dy*dy)<=((JOY_R+28)*(JOY_R+28))){
+                    if(joystickTouch || (dx*dx+dy*dy)<=((JOY_R+28)*(JOY_R+28))){
+                        joystickTouch=true;
                         joystickActive=true;
                         float len=(float)Math.hypot(dx,dy);
                         if(len>JOY_R){dx=dx*JOY_R/len;dy=dy*JOY_R/len;}
@@ -338,11 +370,9 @@ public class MainActivity extends Activity {
                             playerX[selected]=Math.max(.12f,Math.min(.62f,playerX[selected]+dir*.0065f));
                             toast=names[selected]+" di chuyển "+(dir<0?"sang trái":"sang phải");
                         }
-                        invalidate(); return true;
+                        invalidate();
+                        return true;
                     }
-                }
-                if(e.getAction()==MotionEvent.ACTION_UP){
-                    joystickActive=false; joystickKnobX=jx; joystickKnobY=jy; invalidate();
                 }
             }
             if(e.getAction()!=MotionEvent.ACTION_UP)return true;
@@ -360,7 +390,11 @@ public class MainActivity extends Activity {
             }else if(screen==MAP){
                 for(int i=0;i<6;i++){
                     int col=i%3,row=i/3;float l=35+col*w*.31f,t=115+row*175,r=l+w*.27f,b=t+145;
-                    if(x>=l&&x<=r&&y>=t&&y<=b){map=i;toast="Màn "+(i+1)+" đã chọn";invalidate();return true;}
+                    if(x>=l&&x<=r&&y>=t&&y<=b){
+                        if(isMapUnlocked(i)){map=i;toast="Màn "+(i+1)+" đã chọn";}
+                        else toast="Cần Lv "+mapRequiredLevel(i)+" để mở màn "+(i+1);
+                        invalidate();return true;
+                    }
                 }
                 if(y>h-70){screen=LOBBY;invalidate();return true;}
             }else if(screen==CHAR){
@@ -370,7 +404,7 @@ public class MainActivity extends Activity {
                         if(y>=h-215&&y<h-175){
                             if(money>=charUpgradeCost[i]){money-=charUpgradeCost[i];levels[i]++;charUpgradeCost[i]+=400;toast=names[i]+" lên Lv."+levels[i];}
                             else toast="Không đủ tiền nâng "+names[i];
-                        }else {selected=i;toast="Đã chọn "+names[i];}
+                        }else {selected=i;if(map>0 && !isMapUnlocked(map)) map=0;toast="Đã chọn "+names[i];}
                         invalidate();return true;
                     }
                 }
@@ -415,6 +449,7 @@ public class MainActivity extends Activity {
             fishIdx=rnd.nextInt(fishNames.length);fishMax=7000+fishWeights[fishIdx]*180;fishHp=fishMax;
             tension=24;fishX=.77f;fishY=.51f;fishV=-.004f;fishHooked=false;skillFX=false;screen=FISHING;
             playerX[0]=.27f;playerX[1]=.39f;playerX[2]=.51f;playerY=.77f;
+            resetJoystick();
             toast="Cả Sở Tâm, Bá Thường, Lão Ngô cùng thả câu!";
         }
 
