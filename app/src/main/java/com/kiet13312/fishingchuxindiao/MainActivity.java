@@ -36,6 +36,13 @@ public class MainActivity extends Activity {
                 "Hộ lực, hạ căng dây và tăng sức kéo."
         };
         final int[] levels={80,100,44};
+        final int[] skillLevels={1,1,1};
+        final int[] skillCosts={500,800,600};
+        final int[] skillPower={1,1,1};
+        float[] playerX={.27f,.39f,.51f};
+        float playerY=.77f;
+        int movingWho=-1;
+        float touchStartX=0,touchStartY=0;
         final int[] clothes={Color.rgb(76,155,91),Color.rgb(145,75,178),Color.rgb(61,112,167)};
 
         final String[] rodNames={"Cần Tre","Cần Sắt","Cần Thép","Cần Vàng","Cần Thần"};
@@ -152,8 +159,8 @@ public class MainActivity extends Activity {
                 p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(i==selected?4:2);p.setColor(i==selected?Color.YELLOW:Color.rgb(75,95,105));c.drawRoundRect(l,120,r,h-105,20,20,p);p.setStyle(Paint.Style.FILL);
                 drawPerson(c,cx,cy,i,1.65f);
                 center(c,names[i],cx,360,22,Color.WHITE);center(c,"Lv "+levels[i],cx,386,14,Color.YELLOW);
-                center(c,"Lực +"+(i==0?70:i==1?95:80),cx,412,13,Color.LTGRAY);
-                center(c,skillNames[i],cx,441,15,Color.rgb(239,205,112));
+                center(c,"Lực +"+((i==0?70:i==1?95:80)+skillLevels[i]*15),cx,412,13,Color.LTGRAY);
+                center(c,skillNames[i]+" Lv."+skillLevels[i],cx,441,15,Color.rgb(239,205,112));
                 button(c,l+25,h-165,r-25,h-115,i==selected?"ĐANG CHỌN":"CHỌN",i==selected);
                 if(i==selected) center(c,"✓",r-35,151,25,Color.YELLOW);
             }
@@ -177,18 +184,18 @@ public class MainActivity extends Activity {
 
         void drawSkillMenu(Canvas c,int w,int h){
             p.setColor(Color.rgb(8,10,14));c.drawRect(0,0,w,h,p);topBar(c,w,"MENU KỸ NĂNG");
-            txt(c,"Chọn kỹ năng để xem hiệu ứng khi 3 người cùng câu.",34,92,15,Color.LTGRAY);
+            txt(c,"Nâng cấp kỹ năng bằng tiền • mỗi cấp tăng sức mạnh.",34,92,15,Color.LTGRAY);
             for(int i=0;i<3;i++){
                 float l=35+i*w*.31f,r=l+w*.28f;
                 p.setColor(Color.rgb(27,32,39));c.drawRoundRect(l,115,r,h-105,17,17,p);
                 p.setColor(clothes[i]);c.drawCircle((l+r)/2,182,34,p);
                 center(c,names[i],(l+r)/2,245,20,Color.WHITE);
-                center(c,skillNames[i],(l+r)/2,280,17,Color.YELLOW);
+                center(c,skillNames[i]+"  Lv."+skillLevels[i],(l+r)/2,280,17,Color.YELLOW);
                 lineWrap(c,skillDesc[i],l+20,318,r-20,14,Color.LTGRAY);
                 if(i==0){txt(c,"🚜  Kéo đoàn dây",l+20,388,14,Color.WHITE);txt(c,"Kéo cả 3 cần cùng lúc.",l+20,414,13,Color.LTGRAY);}
                 if(i==1){txt(c,"⚡  Phi thiên bộc phát",l+20,388,14,Color.WHITE);txt(c,"Dồn lực đánh cá.",l+20,414,13,Color.LTGRAY);}
                 if(i==2){txt(c,"🛡  Giảm căng dây",l+20,388,14,Color.WHITE);txt(c,"Hạ áp lực cá quẫy.",l+20,414,13,Color.LTGRAY);}
-                button(c,l+20,h-175,r-20,h-125,"XEM CHI TIẾT",false);
+                button(c,l+20,h-175,r-20,h-125,"NÂNG CẤP "+skillCosts[i]+"$",true);
             }
             button(c,25,h-62,170,h-18,"VỀ SẢNH",false);
         }
@@ -226,11 +233,12 @@ public class MainActivity extends Activity {
             panel(c,w-240,18,w-20,88,Color.argb(200,13,18,22));
             txt(c,"💰 "+money+"$",w-220,45,16,Color.YELLOW);txt(c,rodNames[rod]+" • "+rodPower[rod]+" kg",w-220,68,13,Color.WHITE);
 
-            float[] xs={w*.27f,w*.39f,w*.51f},base=h*.77f;
+            float base=h*playerY;
             for(int i=0;i<3;i++){
-                drawPerson(c,xs[i],base,i,1.35f);center(c,names[i],xs[i],base+55,11,Color.WHITE);
+                float px=w*playerX[i];
+                drawPerson(c,px,base,i,1.35f);center(c,names[i],px,base+55,11,Color.WHITE);
                 p.setStyle(Paint.Style.STROKE);p.setColor(Color.WHITE);p.setStrokeWidth(2.4f+i);
-                float sx=xs[i]+105,sy=base-75,ex=w*(.67f+i*.045f),ey=h*(.57f+i*.016f);
+                float sx=px+105,sy=base-75,ex=w*(.67f+i*.045f),ey=h*(.57f+i*.016f);
                 Path q=new Path();q.moveTo(sx,sy);q.quadTo((sx+ex)/2,sy-42,ex,ey);q.quadTo(ex+33,ey-8,ex+62,ey);c.drawPath(q,p);p.setStyle(Paint.Style.FILL);
             }
 
@@ -255,6 +263,9 @@ public class MainActivity extends Activity {
             txt(c,"Căng dây",w-155,h*.45f,11,Color.WHITE);
 
             txt(c,toast,24,h-108,12,Color.WHITE);
+            // movement controls
+            button(c,20,h-150,100,h-100,"←",false);
+            button(c,110,h-150,190,h-100,"→",false);
             if(skillFX && System.currentTimeMillis()<skillFxUntil) drawSkillFX(c,w,h);
             else skillFX=false;
 
@@ -344,14 +355,23 @@ public class MainActivity extends Activity {
                 if(y>h-70){screen=LOBBY;invalidate();return true;}
                 for(int i=0;i<3;i++){
                     float l=35+i*w*.31f,r=l+w*.28f;
-                    if(x>=l&&x<=r&&y>110&&y<h-90){selected=i;toast=skillNames[i];invalidate();return true;}
+                    if(x>=l&&x<=r&&y>h-190&&y<h-105){
+                        if(money>=skillCosts[i]){money-=skillCosts[i];skillLevels[i]++;skillCosts[i]=skillCosts[i]+skillLevels[i]*400;toast=skillNames[i]+" lên Lv."+skillLevels[i];}
+                        else toast="Không đủ tiền nâng kỹ năng";
+                        invalidate();return true;
+                    }
                 }
             }else if(screen==FISHING){
+                // Touch-drag also moves the currently selected fisherman.
+                if(y>h-170 && x<210){
+                    if(x<105) moveGroup(-.025f); else moveGroup(.025f);
+                    invalidate(); return true;
+                }
                 float cx=w-95,cy=h-65;
                 if(Math.hypot(x-cx,y-cy)<82){if(!fishHooked){fishHooked=true;toast="Cá cắn! 3 người cùng kéo!";}else pullTogether();invalidate();return true;}
                 for(int i=0;i<3;i++){
                     float l=28+i*120;
-                    if(x>=l&&x<=l+110&&y>=h-96&&y<h-10){useSkill(i);invalidate();return true;}
+                    if(x>=l&&x<=l+110&&y>=h-96&&y<h-10){selected=i;useSkill(i);invalidate();return true;}
                 }
             }else if(screen==RESULT){
                 if(y>h*.53f&&y<h*.66f){startFishing();return true;}
@@ -363,11 +383,17 @@ public class MainActivity extends Activity {
         void startFishing(){
             fishIdx=rnd.nextInt(fishNames.length);fishMax=7000+fishWeights[fishIdx]*180;fishHp=fishMax;
             tension=24;fishX=.77f;fishY=.51f;fishV=-.004f;fishHooked=false;skillFX=false;screen=FISHING;
+            playerX[0]=.27f;playerX[1]=.39f;playerX[2]=.51f;playerY=.77f;
             toast="Cả Sở Tâm, Bá Thường, Lão Ngô cùng thả câu!";
         }
 
+        void moveGroup(float delta){
+            for(int i=0;i<3;i++) playerX[i]=Math.max(.12f,Math.min(.62f,playerX[i]+delta));
+            toast=delta<0?"Ba nhân vật di chuyển sang trái":"Ba nhân vật di chuyển sang phải";
+        }
+
         void pullTogether(){
-            int power=rodPower[rod]/4+70+95+80;
+            int power=rodPower[rod]/4+70+95+80+skillLevels[0]*10+skillLevels[1]*10+skillLevels[2]*10;
             fishHp-=power;tension+=7+rnd.nextInt(6);if(tension>100)tension=100;
             if(fishHp<=0){money+=fishWeights[fishIdx]*3;screen=RESULT;}
             toast="3 người cùng co dây  -"+power+" HP";
@@ -375,9 +401,9 @@ public class MainActivity extends Activity {
 
         void useSkill(int who){
             selected=who;skillFX=true;skillFxUntil=System.currentTimeMillis()+1200;
-            if(who==0){fishHp-=1200+tension*8;tension=Math.max(5,tension-28);toast="XE KÉO • Kéo cả 3 dây!";}
-            else if(who==1){fishHp-=2200+tension*12;tension=Math.min(100,tension+18);toast="PHI THIÊN VÔ CỰC • Bộc phát lực kéo!";}
-            else{fishHp-=900;tension=Math.max(5,tension-42);toast="HỘ LỰC • Hạ căng dây!";}
+            if(who==0){fishHp-=1200+skillLevels[0]*350+tension*8;tension=Math.max(5,tension-28);toast="XE KÉO Lv."+skillLevels[0]+" • Kéo cả 3 dây!";}
+            else if(who==1){fishHp-=2200+skillLevels[1]*500+tension*12;tension=Math.min(100,tension+18);toast="PHI THIÊN VÔ CỰC Lv."+skillLevels[1]+" • Bộc phát lực kéo!";}
+            else{fishHp-=900+skillLevels[2]*300;tension=Math.max(5,tension-42);toast="HỘ LỰC Lv."+skillLevels[2]+" • Hạ căng dây!";}
             if(fishHp<=0){money+=fishWeights[fishIdx]*3;screen=RESULT;}
         }
     }
