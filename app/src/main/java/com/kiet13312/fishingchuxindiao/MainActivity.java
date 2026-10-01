@@ -39,6 +39,7 @@ public class MainActivity extends Activity {
         final int[] skillLevels={1,1,1};
         final int[] skillCosts={500,800,600};
         final int[] skillPower={1,1,1};
+        final int[] charUpgradeCost={700,900,650};
         float[] playerX={.27f,.39f,.51f};
         float playerY=.77f;
         int movingWho=-1;
@@ -161,6 +162,7 @@ public class MainActivity extends Activity {
                 center(c,names[i],cx,360,22,Color.WHITE);center(c,"Lv "+levels[i],cx,386,14,Color.YELLOW);
                 center(c,"Lực +"+((i==0?70:i==1?95:80)+skillLevels[i]*15),cx,412,13,Color.LTGRAY);
                 center(c,skillNames[i]+" Lv."+skillLevels[i],cx,441,15,Color.rgb(239,205,112));
+                button(c,l+25,h-215,r-25,h-175,"NÂNG "+charUpgradeCost[i]+"$",true);
                 button(c,l+25,h-165,r-25,h-115,i==selected?"ĐANG CHỌN":"CHỌN",i==selected);
                 if(i==selected) center(c,"✓",r-35,151,25,Color.YELLOW);
             }
@@ -336,7 +338,13 @@ public class MainActivity extends Activity {
             }else if(screen==CHAR){
                 for(int i=0;i<3;i++){
                     float l=45+i*w*.31f,r=l+w*.25f;
-                    if(x>=l&&x<=r&&y>=120&&y<=h-105){selected=i;toast="Đã chọn "+names[i];invalidate();return true;}
+                    if(x>=l&&x<=r&&y>=120&&y<=h-105){
+                        if(y>=h-215&&y<h-175){
+                            if(money>=charUpgradeCost[i]){money-=charUpgradeCost[i];levels[i]++;charUpgradeCost[i]+=400;toast=names[i]+" lên Lv."+levels[i];}
+                            else toast="Không đủ tiền nâng "+names[i];
+                        }else {selected=i;toast="Đã chọn "+names[i];}
+                        invalidate();return true;
+                    }
                 }
                 if(y>h-70&&x<190){screen=LOBBY;invalidate();return true;}
                 if(y>h-70&&x>w-225){startFishing();return true;}
@@ -388,8 +396,8 @@ public class MainActivity extends Activity {
         }
 
         void moveGroup(float delta){
-            for(int i=0;i<3;i++) playerX[i]=Math.max(.12f,Math.min(.62f,playerX[i]+delta));
-            toast=delta<0?"Ba nhân vật di chuyển sang trái":"Ba nhân vật di chuyển sang phải";
+            playerX[selected]=Math.max(.12f,Math.min(.62f,playerX[selected]+delta));
+            toast=names[selected]+" di chuyển "+(delta<0?"sang trái":"sang phải");
         }
 
         void pullTogether(){
