@@ -147,7 +147,7 @@ public class MainActivity extends Activity {
                 p.setColor(Color.rgb(67,148,169));c.drawRect(l+10,t+43,r-10,t+70,p);
                 for(int k=0;k<4;k++){p.setColor(Color.rgb(87,153,91));c.drawCircle(l+25+k*48,t+30,22+(k%2)*5,p);}
                 txt(c,mapNames[i],l+15,t+98,16,Color.WHITE);txt(c,req[i],l+15,t+119,12,Color.YELLOW);
-                button(c,r-88,t+88,r-15,t+132,i<=map);
+                button(c,r-88,t+88,r-15,t+132,"VÀO",i<=map);
             }
             button(c,25,h-62,170,h-18,"VỀ SẢNH",false);
         }
