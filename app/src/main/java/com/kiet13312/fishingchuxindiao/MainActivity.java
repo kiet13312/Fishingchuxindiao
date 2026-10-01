@@ -82,7 +82,7 @@ public class MainActivity extends Activity {
         long[] skillReadyAt = {0, 0, 0};
         int activeSkill = -1;
         long activeSkillEnd = 0;
-        int skillTick = 0;
+        long skillTick = 0;
 
         String notice = "Sẵn sàng câu cá";
 
@@ -741,7 +741,7 @@ public class MainActivity extends Activity {
 
             if (activeSkill >= 0 && now < activeSkillEnd) {
                 if (activeSkill == 1 && now - skillTick >= 300) {
-                    skillTick = (int)now;
+                    skillTick = now;
                     long damage = 600000L;
                     fishHp -= damage;
                 }
