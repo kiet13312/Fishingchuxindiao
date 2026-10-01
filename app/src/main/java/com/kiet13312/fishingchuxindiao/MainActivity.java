@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
         }
 
         void drawPlayer(Canvas c,int w,int hh){
-            float[] xs={w*.28f,w*.45f,w*.62f}, base=hh*.76f;
+            float[] xs={w*.28f,w*.45f,w*.62f}; float base=hh*.76f;
             for(int i=0;i<3;i++){
                 float x=xs[i];
                 if(i==character){
@@ -289,7 +289,7 @@ public class MainActivity extends Activity {
 
         void sell(){
             if(bag.size()==0){message="Kho cá trống!";return;}
-            int total=0;for(Fish f:bag)total+=f.weight*3;
+            int total=0;for(Fish f:bag)total+=f.w*3;
             money+=total;bag.clear();message="Đã bán cá +"+total+"$";invalidate();
         }
 
