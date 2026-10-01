@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
         int selected=0,money=1000,energy=100,rod=0,state=0;
         int fishWeight=0,fishHp=0,fishMaxHp=0,tension=20;
         float fishX=.74f,fishY=.53f,fishSpeed=.0028f;
-        long biteAt=0,lastTick=0,skillEnd=0,skillCooldownEnd=0;
+        long biteAt=0,lastTick=0,skillEnd=0,skillCooldownEnd=0,tractorEnd=0;
         int skillHits=0;
         boolean tractor=false,flash=false,equipment=false;
         String message="Sẵn sàng câu cá";
