@@ -241,7 +241,7 @@ public class MainActivity extends Activity {
         void beginBattle(){
             state=2; fishWeight=weights[random.nextInt(weights.length)];
             fishMaxHp=4500+fishWeight*250; fishHp=fishMaxHp; tension=24;
-            fishX=.78f; fishY=.52f; fishSpeed=random.nextBoolean()?.0028f:-.0028f;
+            fishX=.78f; fishY=.52f; fishSpeed=random.nextBoolean()?0.0028f:-0.0028f;
             lastTick=System.currentTimeMillis(); skillHits=0;
             message="Cá cắn! Co lại dây, tránh để đứt dây.";
         }
