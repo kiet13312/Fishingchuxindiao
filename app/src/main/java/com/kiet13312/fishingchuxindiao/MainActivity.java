@@ -2,11 +2,9 @@ package com.kiet13312.fishingchuxindiao;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Handler;
 import android.graphics.*;
 import android.view.*;
 import android.content.Context;
-import java.util.ArrayList;
 import java.util.Random;
 
 public class MainActivity extends Activity {
@@ -14,7 +12,10 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+        );
         setContentView(new FishingGame(this));
     }
 
@@ -22,302 +23,1063 @@ public class MainActivity extends Activity {
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
         final Path path = new Path();
         final Random random = new Random();
-        final Handler handler = new Handler();
 
-        final String[] names = {"Sở Tâm","Bá Thường","Lão Ngô"};
-        final String[] skills = {"XE KÉO","PHI THIÊN VÔ CỰC","HỘ LỰC"};
-        final int[] basePower = {70,95,80};
-        final int[] shirt = {Color.rgb(74,147,87),Color.rgb(136,71,173),Color.rgb(60,102,165)};
+        static final int HOME = 0;
+        static final int LEVELS = 1;
+        static final int CHARACTERS = 2;
+        static final int SHOP = 3;
+        static final int SKILLS = 4;
+        static final int GAME = 5;
 
-        final String[] rodNames = {"Cần Tre","Cần Sắt","Cần Thép","Cần Vàng","Cần Thần"};
-        final int[] rodPrice = {0,2000,8000,30000,100000};
-        final int[] rodPower = {120,350,700,1400,3000};
+        int page = HOME;
+        int selectedLevel = 1;
+        int selectedCharacter = 0;
+        int equippedRod = 0;
 
-        final int[] weights = {50,100,200,400,800,1200,2000,5000,10000};
-        final String[] fishNames = {"Cá rô","Cá chép","Cá trắm","Cá lóc","Cá mè","Cá kiếm","Cá thần","Cá vạn cân","Cá Tề Thiên"};
+        long money = 12540000L;
+        int energy = 100;
 
-        int selected=0,money=1000,energy=100,rod=0,state=0;
-        int fishWeight=0,fishHp=0,fishMaxHp=0,tension=20;
-        float fishX=.74f,fishY=.53f,fishSpeed=.0028f;
-        long biteAt=0,lastTick=0,skillEnd=0,skillCooldownEnd=0,tractorEnd=0;
-        int skillHits=0;
-        boolean tractor=false,flash=false,equipment=false;
-        String message="Sẵn sàng câu cá";
-        final ArrayList<Fish> bag=new ArrayList<Fish>();
+        final String[] characterNames = {"Sở Tâm", "Bá Thường", "Lão Ngô"};
+        final String[] skillNames = {"XE KÉO", "PHI THIÊN VÔ CỰC", "HỘ NGƯ"};
+        final int[] characterPower = {180000, 220000, 195000};
+        final int[] characterColor = {
+                Color.rgb(72, 146, 88),
+                Color.rgb(151, 68, 177),
+                Color.rgb(70, 108, 166)
+        };
 
-        FishingGame(Context c){super(c);p.setTypeface(Typeface.DEFAULT_BOLD);setFocusable(true);}
+        final String[] rodNames = {
+                "Cần Tre", "Cần Sắt", "Cần Thép", "Cần Vàng", "Cần Thần"
+        };
+        final int[] rodPrice = {0, 200000, 800000, 3000000, 10000000};
+        final int[] rodPower = {1, 2, 4, 7, 12};
 
-        @Override protected void onDraw(Canvas c){
-            int w=getWidth(),h=getHeight(); long now=System.currentTimeMillis();
-            drawBackground(c,w,h,now);
-            if(state==1 && now>=biteAt) beginBattle();
-            if(state==2) updateBattle(now);
-            drawTop(c,w,h);
-            drawPlayers(c,w,h);
-            if(state==2) drawFish(c,w,h,now);
-            drawBottom(c,w,h,now);
-            if(tractor) drawTractor(c,w,h,now);
-            if(flash) drawFlash(c,w,h);
-            if(equipment) drawEquipment(c,w,h);
+        final String[] mapNames = {
+                "Hồ Chứa", "Bến Câu", "Rừng Xanh",
+                "Đầm Độc", "Biển Biến Đổi", "Hắc Hồ",
+                "Ngũ Hồ Sơn Lôi", "Thôn Quái", "Quán Sau Nam Cường"
+        };
+
+        int fishLevel;
+        String fishName;
+        long fishHp;
+        long fishMaxHp;
+        int lineTension = 18;
+        float fishX = 0.76f;
+        float fishY = 0.51f;
+        float fishVX = 0.0021f;
+        float lineLength = 2.5f;
+
+        long nextBite = 0;
+        long lastPhysics = 0;
+        long lastReel = 0;
+
+        boolean fishing = false;
+        boolean fishBiting = false;
+        boolean finished = false;
+        boolean reelPressed = false;
+
+        long[] skillReadyAt = {0, 0, 0};
+        int activeSkill = -1;
+        long activeSkillEnd = 0;
+        int skillTick = 0;
+
+        String notice = "Sẵn sàng câu cá";
+
+        FishingGame(Context c) {
+            super(c);
+            p.setTypeface(Typeface.DEFAULT_BOLD);
+            setFocusable(true);
+        }
+
+        @Override
+        protected void onDraw(Canvas c) {
+            int w = getWidth();
+            int h = getHeight();
+            long now = System.currentTimeMillis();
+
+            if (page == HOME) {
+                drawLobby(c, w, h);
+            } else if (page == LEVELS) {
+                drawLobby(c, w, h);
+                drawPanel(c, w, h, "CHỌN MÀN");
+                drawLevels(c, w, h);
+            } else if (page == CHARACTERS) {
+                drawLobby(c, w, h);
+                drawPanel(c, w, h, "CHỌN NHÂN VẬT");
+                drawCharacters(c, w, h);
+            } else if (page == SHOP) {
+                drawLobby(c, w, h);
+                drawPanel(c, w, h, "SHOP - CẦN CÂU");
+                drawShop(c, w, h);
+            } else if (page == SKILLS) {
+                drawLobby(c, w, h);
+                drawPanel(c, w, h, "MENU KỸ NĂNG");
+                drawSkills(c, w, h);
+            } else if (page == GAME) {
+                drawFishingScene(c, w, h, now);
+                updateGame(now);
+            }
+
             postInvalidateDelayed(40);
         }
 
-        void drawBackground(Canvas c,int w,int h,long now){
+        void drawLobby(Canvas c, int w, int h) {
             p.setStyle(Paint.Style.FILL);
-            p.setColor(Color.rgb(102,169,188)); c.drawRect(0,0,w,h,p);
-            p.setColor(Color.rgb(29,61,44));
-            for(int i=0;i<18;i++) c.drawCircle(i*w/17f,h*.34f-(i%4)*10,62+(i%3)*12,p);
-            p.setColor(Color.rgb(52,95,57));
-            for(int i=0;i<22;i++) c.drawCircle(i*w/21f+20,h*.41f-(i%5)*7,36+(i%2)*8,p);
-            p.setColor(Color.rgb(63,151,174)); c.drawRect(0,h*.38f,w,h*.78f,p);
-            for(int i=0;i<14;i++){
-                float y=h*.42f+i*h*.025f;
-                p.setColor(Color.argb(78,235,255,255)); c.drawLine(0,y,w,y+(i%2==0?5:-3),p);
-            }
-            p.setColor(Color.rgb(229,214,178)); c.drawRect(0,h*.77f,w,h,p);
-            p.setColor(Color.rgb(196,178,143));
-            for(int i=0;i<70;i++) c.drawCircle((i*73)%w,h*.79f+(i*31)%Math.max(1,(int)(h*.18f)),2+i%3,p);
-            p.setColor(Color.rgb(88,64,42)); c.drawRoundRect(22,h*.68f,138,h*.78f,12,12,p);
-            p.setColor(Color.DKGRAY); c.drawCircle(49,h*.80f,14,p); c.drawCircle(112,h*.80f,14,p);
-            p.setColor(Color.rgb(177,139,84)); c.drawRect(35,h*.64f,122,h*.69f,p);
-        }
 
-        void drawTop(Canvas c,int w,int h){
-            p.setColor(Color.WHITE); p.setTextSize(17); c.drawText("‹  Quay lại trang chủ",24,30,p);
-            p.setTextSize(19); c.drawText("Câu cá vạn cân",32,70,p);
-            p.setTextSize(12); c.drawText("Lv "+level(selected),34,92,p);
+            // Sky / forest.
+            p.setColor(Color.rgb(44, 88, 72));
+            c.drawRect(0, 0, w, h * 0.38f, p);
 
-            if(state==2){
-                p.setColor(Color.argb(185,12,15,18)); c.drawRoundRect(w*.33f,18,w*.73f,92,16,16,p);
-                p.setColor(Color.WHITE); p.setTextSize(16); c.drawText("Lv 100   "+currentFishName(),w*.36f,42,p);
-                p.setColor(Color.DKGRAY); c.drawRoundRect(w*.36f,53,w*.70f,69,8,8,p);
-                float ratio=fishMaxHp==0?0:(float)fishHp/fishMaxHp;
-                p.setColor(Color.rgb(226,56,68)); c.drawRoundRect(w*.36f,53,w*.36f+(w*.34f)*ratio,69,8,8,p);
-                p.setColor(Color.WHITE); p.setTextSize(10); c.drawText(fishHp+"/"+fishMaxHp,w*.505f,65,p);
+            for (int i = 0; i < 22; i++) {
+                p.setColor(i % 2 == 0
+                        ? Color.rgb(65, 119, 73)
+                        : Color.rgb(92, 142, 82));
+                float x = (i * 67) % w;
+                float y = h * 0.25f + (i % 5) * 13;
+                c.drawCircle(x, y, 62 + (i % 3) * 14, p);
             }
 
-            p.setColor(Color.argb(190,18,20,23)); c.drawRoundRect(w-372,14,w-18,94,18,18,p);
-            p.setColor(Color.rgb(255,223,42)); p.setTextSize(15); c.drawText("Đồng cấp VIP",w-354,39,p);
-            p.setColor(Color.WHITE); p.setTextSize(16); c.drawText("$ "+money,w-246,39,p);
-            p.setTextSize(13); c.drawText("ENERGY "+energy,w-354,69,p); c.drawText(rodNames[rod]+" • "+rodPower[rod]+" kg",w-255,69,p);
-            p.setTextSize(18); c.drawText("☻  •  …  ×",w-101,42,p);
+            // Water.
+            p.setColor(Color.rgb(68, 150, 173));
+            c.drawRect(0, h * 0.36f, w, h * 0.78f, p);
+            p.setColor(Color.argb(75, 240, 255, 255));
+            for (int i = 0; i < 11; i++) {
+                float y = h * 0.41f + i * 22;
+                c.drawLine(0, y, w, y + (i % 2 == 0 ? 3 : -2), p);
+            }
+
+            // Beach.
+            p.setColor(Color.rgb(232, 217, 183));
+            c.drawRect(0, h * 0.76f, w, h, p);
+            p.setColor(Color.rgb(192, 173, 138));
+            for (int i = 0; i < 80; i++) {
+                float x = (i * 83) % w;
+                float y = h * 0.79f + (i * 31) % Math.max(1, (int) (h * 0.18f));
+                c.drawCircle(x, y, 2 + i % 3, p);
+            }
+
+            // Top bar.
+            p.setColor(Color.argb(215, 11, 15, 18));
+            c.drawRoundRect(18, 14, w - 18, 78, 18, 18, p);
+            p.setColor(Color.WHITE);
+            p.setTextSize(18);
+            c.drawText("CÂU CÁ VẠN CÂN", 35, 45, p);
+
+            p.setColor(Color.rgb(255, 220, 40));
+            p.setTextSize(16);
+            c.drawText("Tiền: " + moneyText(), w * 0.53f, 42, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(13);
+            c.drawText("Năng lượng: " + energy, w * 0.53f, 64, p);
+            c.drawText("Cần: " + rodNames[equippedRod], w * 0.72f, 64, p);
+
+            // Characters always together in the lobby.
+            drawCharacter(c, w * .28f, h * .70f, 0, 1.0f, false);
+            drawCharacter(c, w * .43f, h * .70f, 1, 1.0f, false);
+            drawCharacter(c, w * .58f, h * .70f, 2, 1.0f, false);
+
+            // Main lobby menu.
+            float left = 22;
+            float bw = 215;
+            float bh = 55;
+            button(c, left, h * .15f, left + bw, h * .15f + bh,
+                    "BẮT ĐẦU", Color.rgb(48, 140, 79), 18);
+            button(c, left, h * .15f + 67, left + bw, h * .15f + 67 + bh,
+                    "CHỌN MÀN", Color.rgb(62, 109, 157), 15);
+            button(c, left, h * .15f + 134, left + bw, h * .15f + 134 + bh,
+                    "NHÂN VẬT", characterColor[0], 15);
+            button(c, left, h * .15f + 201, left + bw, h * .15f + 201 + bh,
+                    "SHOP / CẦN CÂU", Color.rgb(151, 112, 44), 14);
+            button(c, left, h * .15f + 268, left + bw, h * .15f + 268 + bh,
+                    "KỸ NĂNG", characterColor[1], 15);
+
+            p.setColor(Color.argb(180, 10, 12, 15));
+            c.drawRoundRect(w - 285, h * .16f, w - 24, h * .16f + 170, 18, 18, p);
+            p.setColor(Color.WHITE);
+            p.setTextSize(14);
+            c.drawText("THÔNG TIN", w - 258, h * .16f + 30, p);
+            p.setTextSize(12);
+            c.drawText("Màn hiện tại: " + selectedLevel, w - 258, h * .16f + 58, p);
+            c.drawText("Nhân vật chính: " + characterNames[selectedCharacter],
+                    w - 258, h * .16f + 82, p);
+            c.drawText("Kỹ năng: " + skillNames[selectedCharacter],
+                    w - 258, h * .16f + 106, p);
+            c.drawText("Cả 3 nhân vật sẽ thả câu",
+                    w - 258, h * .16f + 132, p);
+            c.drawText("đồng thời khi vào trận.",
+                    w - 258, h * .16f + 150, p);
         }
 
-        void drawPlayers(Canvas c,int w,int h){
-            float[] xs={w*.25f,w*.38f,w*.51f}; float base=h*.77f;
-            for(int i=0;i<3;i++){
-                float x=xs[i];
-                if(i==selected){
-                    p.setColor(Color.argb(90,255,220,50)); c.drawCircle(x,base-48,58,p);
+        void drawPanel(Canvas c, int w, int h, String title) {
+            p.setColor(Color.argb(244, 5, 8, 11));
+            c.drawRect(0, 0, w, h, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(24);
+            c.drawText("‹", 24, 45, p);
+            p.setTextSize(20);
+            c.drawText(title, 60, 45, p);
+
+            p.setColor(Color.rgb(255, 220, 45));
+            p.setTextSize(15);
+            c.drawText("Tiền: " + moneyText(), w - 245, 42, p);
+        }
+
+        void drawLevels(Canvas c, int w, int h) {
+            int cols = 3;
+            float startX = 70;
+            float startY = 85;
+            float cardW = (w - 190) / 3f;
+            float cardH = 115;
+
+            for (int i = 0; i < 9; i++) {
+                int row = i / cols;
+                int col = i % cols;
+                float x = startX + col * (cardW + 25);
+                float y = startY + row * 130;
+                boolean unlocked = i < 4;
+
+                p.setColor(unlocked
+                        ? Color.rgb(44, 105, 73)
+                        : Color.rgb(48, 52, 58));
+                c.drawRoundRect(x, y, x + cardW, y + cardH, 16, 16, p);
+
+                p.setColor(Color.WHITE);
+                p.setTextSize(16);
+                c.drawText("MÀN " + (i + 1), x + 16, y + 27, p);
+
+                p.setTextSize(13);
+                c.drawText(mapNames[i], x + 16, y + 50, p);
+                c.drawText(unlocked ? "Đã mở" : "Khóa", x + 16, y + 75, p);
+
+                if (unlocked) {
+                    p.setColor(Color.rgb(255, 218, 47));
+                    p.setTextSize(11);
+                    c.drawText("Cá đặc biệt • Lv " + (i + 1) * 10, x + 16, y + 98, p);
+                } else {
+                    p.setColor(Color.LTGRAY);
+                    p.setTextSize(22);
+                    c.drawText("LOCK", x + cardW - 68, y + 58, p);
                 }
-                p.setColor(Color.rgb(48,39,34)); c.drawCircle(x-5,base-108,22,p);
-                p.setColor(Color.rgb(242,205,164)); c.drawCircle(x,base-94,19,p);
-                p.setColor(shirt[i]); c.drawRoundRect(x-24,base-74,x+24,base-18,10,10,p);
-                p.setColor(Color.rgb(43,46,50)); c.drawRect(x-15,base-18,x-3,base+24,p); c.drawRect(x+3,base-18,x+15,base+24,p);
-                p.setColor(Color.rgb(94,57,30)); p.setStrokeWidth(i==selected?7:5); c.drawLine(x+15,base-40,x+105,base-100,p);
-                p.setColor(Color.WHITE); p.setTextSize(11); c.drawText(names[i],x-22,base+43,p); p.setTextSize(9); c.drawText("Lv "+level(i),x-12,base+57,p);
-            }
-            // line of selected character emphasized
-            float sx=xs[selected]+105,sy=base-100;
-            float ex=state==2?w*fishX:w*.70f,ey=state==2?h*fishY:h*.69f;
-            path.reset(); path.moveTo(sx,sy); path.quadTo((sx+ex)/2f,sy-45,ex,ey);
-            p.setColor(Color.WHITE); p.setStrokeWidth(3.5f); p.setStyle(Paint.Style.STROKE); c.drawPath(path,p); p.setStyle(Paint.Style.FILL);
-        }
-
-        void drawFish(Canvas c,int w,int h,long now){
-            float x=w*fishX,y=h*fishY,s=1f+Math.min(.75f,fishWeight/10000f);
-            p.setColor(Color.rgb(91,59,96)); c.drawOval(x-86*s,y-38*s,x+86*s,y+38*s,p);
-            path.reset(); path.moveTo(x+64*s,y); path.lineTo(x+132*s,y-62*s); path.lineTo(x+118*s,y); path.lineTo(x+132*s,y+62*s); path.close();
-            p.setColor(Color.rgb(136,72,87)); c.drawPath(path,p);
-            p.setColor(Color.WHITE); c.drawCircle(x-48*s,y-10*s,10*s,p); p.setColor(Color.BLACK); c.drawCircle(x-48*s,y-10*s,4*s,p);
-            p.setColor(Color.rgb(175,91,109)); c.drawOval(x-10*s,y-61*s,x+48*s,y-24*s,p);
-            p.setColor(Color.argb(150,235,252,255));
-            for(int i=0;i<8;i++) c.drawCircle(x-70+i*22,y+52+(float)Math.sin(now/170.0+i)*8,3+i%2,p);
-        }
-
-        void drawBottom(Canvas c,int w,int h,long now){
-            p.setColor(Color.argb(212,16,19,23)); c.drawRoundRect(16,h-108,525,h-18,18,18,p);
-            for(int i=0;i<3;i++){
-                float l=28+i*156; boolean active=i==selected;
-                p.setColor(active?Color.rgb(255,213,52):Color.rgb(59,65,73)); c.drawRoundRect(l,h-98,l+145,h-29,12,12,p);
-                p.setColor(shirt[i]); c.drawCircle(l+28,h-63,20,p);
-                p.setColor(Color.WHITE); p.setTextSize(11); c.drawText(names[i],l+54,h-67,p); p.setTextSize(9); c.drawText("Lực "+(basePower[i]+rod*20),l+54,h-50,p);
-            }
-
-            p.setColor(Color.argb(205,14,17,20)); c.drawRoundRect(20,h-157,w-320,h-118,12,12,p);
-            p.setColor(Color.WHITE); p.setTextSize(13); c.drawText(message,34,h-132,p);
-
-            smallButton(c,550,h-94,670,h-39,"KHO "+bag.size(),Color.rgb(70,112,155));
-            smallButton(c,680,h-94,815,h-39,"TRANG BỊ",Color.rgb(103,88,150));
-
-            if(state==0) smallButton(c,825,h-94,970,h-39,"THẢ LƯỠI",Color.rgb(59,132,181));
-            if(state==2){
-                smallButton(c,w-225,h-153,w-112,h-110,"GIẢM CÁP",Color.rgb(56,101,135));
-                float cx=w-91,cy=h-76;
-                p.setColor(Color.argb(80,0,0,0)); c.drawCircle(cx+4,cy+5,62,p);
-                p.setColor(Color.rgb(28,31,34)); c.drawCircle(cx,cy,60,p);
-                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(5); p.setColor(Color.WHITE); c.drawCircle(cx,cy,55,p); p.setStyle(Paint.Style.FILL);
-                p.setColor(Color.WHITE); p.setTextSize(15); center(c,"Co lại dây",cx,cy+5);
-
-                boolean ready=now>=skillCooldownEnd;
-                String s=ready?skills[selected]:"HỒI "+((skillCooldownEnd-now+999)/1000)+"s";
-                int col=ready?(selected==0?Color.rgb(63,146,81):selected==1?Color.rgb(151,69,185):Color.rgb(70,108,163)):Color.GRAY;
-                smallButton(c,825,h-153,1020,h-110,s,col);
             }
         }
 
-        void smallButton(Canvas c,float l,float t,float rr,float b,String text,int col){
-            p.setColor(Color.argb(70,0,0,0)); c.drawRoundRect(l+3,t+4,rr+3,b+4,12,12,p);
-            p.setColor(col); c.drawRoundRect(l,t,rr,b,12,12,p);
-            p.setColor(Color.WHITE); p.setTextSize(text.length()>14?10:12); center(c,text,(l+rr)/2f,t+(b-t)/2f+4);
-        }
+        void drawCharacters(Canvas c, int w, int h) {
+            float cardW = (w - 90) / 3f;
+            for (int i = 0; i < 3; i++) {
+                float x = 20 + i * (cardW + 15);
+                float y = 85;
 
-        void drawFlash(Canvas c,int w,int h){
-            p.setColor(Color.argb(100,255,235,65)); c.drawRect(0,0,w,h,p);
-            p.setColor(Color.argb(170,255,220,50)); c.drawCircle(w*.53f,h*.60f,80,p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(8); c.drawCircle(w*.53f,h*.60f,110,p); p.setStyle(Paint.Style.FILL);
-        }
+                p.setColor(i == selectedCharacter
+                        ? Color.rgb(255, 216, 48)
+                        : Color.rgb(55, 60, 68));
+                c.drawRoundRect(x, y, x + cardW, h - 36, 18, 18, p);
 
-        void drawTractor(Canvas c,int w,int h,long now){
-            float t=1-Math.max(0,tractorEnd-now)/3000f; float x=-110+(w*.65f+110)*Math.min(1,Math.max(0,t)),y=h*.60f;
-            p.setColor(Color.rgb(55,132,58)); c.drawRoundRect(x-78,y-34,x+75,y+18,12,12,p);
-            p.setColor(Color.rgb(76,157,69)); c.drawRoundRect(x-3,y-77,x+55,y-31,9,9,p);
-            p.setColor(Color.rgb(190,221,226)); c.drawRect(x+8,y-68,x+45,y-42,p);
-            p.setColor(Color.DKGRAY); c.drawCircle(x-44,y+23,28,p); c.drawCircle(x+55,y+20,19,p);
-            p.setColor(Color.BLACK); c.drawCircle(x-44,y+23,13,p); c.drawCircle(x+55,y+20,9,p);
-            p.setColor(Color.rgb(242,205,164)); c.drawCircle(x+18,y-95,16,p); p.setColor(shirt[0]); c.drawRect(x+3,y-80,x+35,y-48,p);
-            p.setColor(Color.rgb(94,57,30)); p.setStrokeWidth(7); c.drawLine(x-62,y-20,x-148,y-62,p);
-            p.setColor(Color.WHITE); p.setStrokeWidth(3); c.drawLine(x-148,y-62,x-230,h*.71f,p);
-            p.setColor(Color.RED); c.drawCircle(x-230,h*.71f,8,p);
-            p.setColor(Color.WHITE); p.setTextSize(20); c.drawText("XE KÉO",x-48,y+66,p);
-        }
+                drawCharacter(c, x + cardW / 2f, y + 105, i, 1.25f, false);
 
-        void drawEquipment(Canvas c,int w,int h){
-            p.setColor(Color.argb(238,7,9,12)); c.drawRect(0,0,w,h,p);
-            p.setColor(Color.WHITE); p.setTextSize(21); c.drawText("Trang bị cần câu",34,46,p);
-            p.setTextSize(13); c.drawText("Chọn cần để tăng lực kéo",35,70,p);
-            for(int i=0;i<rodNames.length;i++){
-                float y=92+i*75;
-                p.setColor(i==rod?Color.rgb(255,216,46):Color.rgb(51,56,63)); c.drawRoundRect(28,y,w-28,y+59,12,12,p);
-                p.setColor(i==rod?Color.BLACK:Color.WHITE); p.setTextSize(15); c.drawText(rodNames[i],47,y+25,p); p.setTextSize(11); c.drawText("Lực kéo "+rodPower[i]+" kg",47,y+45,p);
-                if(i>rod) c.drawText("Giá "+rodPrice[i]+"$",w-165,y+34,p); else if(i==rod) c.drawText("Đang dùng",w-160,y+34,p);
+                p.setColor(i == selectedCharacter ? Color.BLACK : Color.WHITE);
+                p.setTextSize(19);
+                center(c, characterNames[i], x + cardW / 2f, y + 178);
+
+                p.setTextSize(12);
+                center(c, "Lực câu: " + formatNumber(characterPower[i]),
+                        x + cardW / 2f, y + 203);
+
+                center(c, "Kỹ năng", x + cardW / 2f, y + 228);
+                p.setTextSize(14);
+                center(c, skillNames[i], x + cardW / 2f, y + 251);
+
+                p.setTextSize(11);
+                center(c, i == 0
+                                ? "Kéo cá về nhanh, giảm độ căng."
+                                : i == 1
+                                ? "Đánh liên kích, gây nhiều sát thương."
+                                : "Ổn định dây và bảo vệ đồng đội.",
+                        x + cardW / 2f, y + 278);
             }
-            smallButton(c,32,h-62,185,h-23,"ĐÓNG",Color.rgb(55,112,155));
         }
 
-        @Override public boolean onTouchEvent(MotionEvent e){
-            if(e.getAction()!=MotionEvent.ACTION_UP) return true;
-            float x=e.getX(),y=e.getY(); int w=getWidth(),h=getHeight();
+        void drawShop(Canvas c, int w, int h) {
+            float x = 55;
+            for (int i = 0; i < rodNames.length; i++) {
+                float y = 80 + i * 73;
+                p.setColor(i == equippedRod
+                        ? Color.rgb(254, 217, 49)
+                        : Color.rgb(43, 49, 57));
+                c.drawRoundRect(x, y, w - 55, y + 58, 14, 14, p);
 
-            if(equipment){
-                if(y>=h-90){equipment=false;invalidate();}
+                p.setColor(i == equippedRod ? Color.BLACK : Color.WHITE);
+                p.setTextSize(15);
+                c.drawText(rodNames[i], x + 22, y + 25, p);
+
+                p.setTextSize(11);
+                c.drawText("Sức mạnh x" + rodPower[i], x + 22, y + 46, p);
+
+                if (i == equippedRod) {
+                    c.drawText("ĐANG DÙNG", w - 150, y + 34, p);
+                } else {
+                    c.drawText("Giá: " + rodPrice[i], w - 170, y + 34, p);
+                }
+            }
+        }
+
+        void drawSkills(Canvas c, int w, int h) {
+            float cardW = (w - 90) / 3f;
+
+            for (int i = 0; i < 3; i++) {
+                float x = 20 + i * (cardW + 15);
+                float y = 95;
+
+                p.setColor(characterColor[i]);
+                c.drawRoundRect(x, y, x + cardW, h - 55, 18, 18, p);
+
+                p.setColor(Color.argb(55, 0, 0, 0));
+                c.drawCircle(x + cardW / 2f, y + 75, 45, p);
+
+                p.setColor(Color.WHITE);
+                p.setTextSize(17);
+                center(c, characterNames[i], x + cardW / 2f, y + 145);
+
+                p.setTextSize(13);
+                center(c, skillNames[i], x + cardW / 2f, y + 175);
+
+                p.setTextSize(11);
+                String desc = i == 0
+                        ? "Xe kéo xuất hiện, kéo cá về và hạ căng dây."
+                        : i == 1
+                        ? "Đánh liên kích màu tím, gây sát thương rất lớn."
+                        : "Ổn định dây trong thời gian ngắn, giảm rủi ro đứt dây.";
+                center(c, desc, x + cardW / 2f, y + 207);
+                center(c, "Hồi chiêu: " + (i == 1 ? "12s" : "8s"),
+                        x + cardW / 2f, y + 232);
+            }
+        }
+
+        void drawFishingScene(Canvas c, int w, int h, long now) {
+            // Background close to the reference: lake + bank.
+            p.setColor(Color.rgb(42, 82, 68));
+            c.drawRect(0, 0, w, h * .34f, p);
+            for (int i = 0; i < 24; i++) {
+                p.setColor(i % 2 == 0
+                        ? Color.rgb(66, 116, 76)
+                        : Color.rgb(98, 145, 87));
+                c.drawCircle((i * 61) % w, h * .24f - (i % 4) * 8,
+                        55 + (i % 4) * 8, p);
+            }
+
+            p.setColor(Color.rgb(64, 154, 177));
+            c.drawRect(0, h * .31f, w, h * .80f, p);
+
+            p.setColor(Color.argb(65, 240, 255, 255));
+            for (int i = 0; i < 18; i++) {
+                float y = h * .36f + i * 15;
+                c.drawLine(0, y, w, y + (float)Math.sin(i) * 5, p);
+            }
+
+            p.setColor(Color.rgb(232, 217, 183));
+            c.drawRect(0, h * .72f, w, h, p);
+
+            // Top player/fish bars.
+            p.setColor(Color.argb(215, 10, 14, 17));
+            c.drawRoundRect(18, 14, 320, 95, 14, 14, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(16);
+            c.drawText("con ng", 36, 35, p);
+            p.setTextSize(12);
+            c.drawText("Lv " + (70 + selectedLevel * 3), 36, 56, p);
+            c.drawText("Thể lực: " + energy + "/100", 36, 73, p);
+            c.drawText("Màn " + selectedLevel + " - " + mapNames[selectedLevel - 1], 36, 89, p);
+
+            // Money bar.
+            p.setColor(Color.rgb(255, 220, 45));
+            p.setTextSize(15);
+            c.drawText("Tiền: " + moneyText(), w - 330, 30, p);
+            p.setColor(Color.WHITE);
+            p.setTextSize(11);
+            c.drawText(rodNames[equippedRod] + "  •  x" + rodPower[equippedRod],
+                    w - 330, 49, p);
+
+            if (fishing || fishBiting) {
+                p.setColor(Color.argb(220, 12, 15, 18));
+                c.drawRoundRect(w * .36f, 15, w * .72f, 86, 15, 15, p);
+                p.setColor(Color.RED);
+                p.setTextSize(17);
+                c.drawText(fishName == null ? "ĐANG CẮN..." : fishName,
+                        w * .39f, 39, p);
+
+                p.setColor(Color.DKGRAY);
+                c.drawRoundRect(w * .39f, 53, w * .69f, 69, 8, 8, p);
+                float hpRatio = fishMaxHp <= 0 ? 0 : Math.max(0, Math.min(1,
+                        (float) fishHp / (float) fishMaxHp));
+                p.setColor(Color.rgb(224, 54, 61));
+                c.drawRoundRect(w * .39f, 53,
+                        w * .39f + w * .30f * hpRatio, 69, 8, 8, p);
+
+                p.setColor(Color.WHITE);
+                p.setTextSize(10);
+                c.drawText(formatNumber(fishHp) + "/" + formatNumber(fishMaxHp),
+                        w * .50f, 65, p);
+            }
+
+            // Three characters. All three cast together.
+            float[] xs = {w * .25f, w * .38f, w * .51f};
+            for (int i = 0; i < 3; i++) {
+                drawCharacter(c, xs[i], h * .71f, i, 1.05f, true);
+
+                float sx = xs[i] + 52;
+                float sy = h * .64f;
+                float ex = w * (.66f + i * .035f);
+                float ey = h * (.47f + i * .045f);
+
+                path.reset();
+                path.moveTo(sx, sy);
+                path.cubicTo(
+                        sx + 90, sy - 70 - i * 8,
+                        ex - 180, ey - 30,
+                        ex, ey
+                );
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(i == selectedCharacter ? 4 : 3);
+                p.setColor(Color.WHITE);
+                c.drawPath(path, p);
+                p.setStyle(Paint.Style.FILL);
+
+                p.setColor(Color.WHITE);
+                c.drawCircle(ex, ey, 5, p);
+            }
+
+            if (fishBiting) {
+                drawFish(c, w * fishX, h * fishY, now);
+            }
+
+            // Right tension meter.
+            float meterX = w - 245;
+            p.setColor(Color.argb(175, 11, 14, 16));
+            c.drawRoundRect(meterX - 38, h * .42f,
+                    meterX + 42, h * .82f, 12, 12, p);
+
+            p.setColor(Color.DKGRAY);
+            c.drawRoundRect(meterX - 7, h * .45f,
+                    meterX + 7, h * .73f, 7, 7, p);
+
+            p.setColor(lineTension >= 80
+                    ? Color.RED
+                    : lineTension >= 55
+                    ? Color.rgb(255, 150, 0)
+                    : Color.rgb(127, 226, 43));
+            float barTop = h * .73f - (h * .27f * lineTension / 100f);
+            c.drawRoundRect(meterX - 7, barTop,
+                    meterX + 7, h * .73f, 7, 7, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(11);
+            c.drawText("Trang bị", meterX - 31, h * .39f, p);
+            c.drawText("Chiều dài cáp câu", meterX - 83, h * .79f, p);
+            c.drawText(String.format(java.util.Locale.US, "%.1fm", lineLength),
+                    meterX - 20, h * .82f, p);
+
+            // Bottom skill menu.
+            drawGameSkills(c, w, h, now);
+
+            // Reel button.
+            p.setColor(Color.argb(210, 12, 15, 18));
+            c.drawCircle(w - 91, h - 76, 62, p);
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(5);
+            p.setColor(Color.WHITE);
+            c.drawCircle(w - 91, h - 76, 55, p);
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.WHITE);
+            p.setTextSize(15);
+            center(c, "CO LẠI DÂY", w - 91, h - 71);
+
+            button(c, w - 235, h - 130, w - 115, h - 86,
+                    "GIẢM CÁP", Color.rgb(61, 102, 139), 12);
+
+            if (!fishing && !fishBiting && !finished) {
+                button(c, 32, h - 92, 220, h - 37,
+                        "THẢ LƯỚI", Color.rgb(49, 137, 91), 15);
+            }
+
+            p.setColor(Color.argb(195, 10, 13, 16));
+            c.drawRoundRect(32, h - 137, 535, h - 99, 12, 12, p);
+            p.setColor(Color.WHITE);
+            p.setTextSize(11);
+            c.drawText(notice, 47, h - 113, p);
+
+            if (finished) {
+                p.setColor(Color.argb(230, 4, 7, 9));
+                c.drawRect(0, 0, w, h, p);
+                p.setColor(Color.rgb(255, 218, 45));
+                p.setTextSize(31);
+                center(c, "BẮT ĐƯỢC CÁ!", w / 2f, h * .37f);
+                p.setColor(Color.WHITE);
+                p.setTextSize(18);
+                center(c, fishName + "  •  + " + rewardText() + "$",
+                        w / 2f, h * .44f);
+                button(c, w * .38f, h * .52f, w * .62f, h * .52f + 58,
+                        "CÂU TIẾP", Color.rgb(51, 136, 88), 16);
+                button(c, w * .38f, h * .52f + 72, w * .62f, h * .52f + 130,
+                        "VỀ SẢNH", Color.rgb(62, 105, 150), 16);
+            }
+        }
+
+        void drawGameSkills(Canvas c, int w, int h, long now) {
+            for (int i = 0; i < 3; i++) {
+                float x = 24 + i * 165;
+                float y = h - 92;
+                p.setColor(characterColor[i]);
+                c.drawRoundRect(x, y, x + 148, y + 55, 12, 12, p);
+
+                p.setColor(Color.WHITE);
+                p.setTextSize(10);
+                c.drawText(characterNames[i], x + 10, y + 17, p);
+
+                String label = skillNames[i];
+                p.setTextSize(label.length() > 13 ? 9 : 11);
+                c.drawText(label, x + 10, y + 35, p);
+
+                long left = Math.max(0, skillReadyAt[i] - now);
+                p.setTextSize(9);
+                c.drawText(left == 0 ? "SẴN SÀNG" : ("Hồi " + ((left + 999) / 1000) + "s"),
+                        x + 10, y + 49, p);
+            }
+
+            if (activeSkill >= 0 && now < activeSkillEnd) {
+                if (activeSkill == 0) drawTowTruck(c, w, h, now);
+                if (activeSkill == 1) drawSkyBurst(c, w, h, now);
+                if (activeSkill == 2) drawShield(c, w, h, now);
+            }
+        }
+
+        void drawFish(Canvas c, float x, float y, long now) {
+            float s = 1.0f;
+            if (fishLevel >= 7) s = 1.25f;
+            if (fishLevel >= 9) s = 1.45f;
+
+            p.setColor(Color.rgb(93, 61, 96));
+            c.drawOval(x - 76 * s, y - 34 * s,
+                    x + 76 * s, y + 34 * s, p);
+
+            path.reset();
+            path.moveTo(x + 58 * s, y);
+            path.lineTo(x + 120 * s, y - 52 * s);
+            path.lineTo(x + 109 * s, y);
+            path.lineTo(x + 120 * s, y + 52 * s);
+            path.close();
+            p.setColor(Color.rgb(142, 73, 89));
+            c.drawPath(path, p);
+
+            p.setColor(Color.WHITE);
+            c.drawCircle(x - 46 * s, y - 9 * s, 10 * s, p);
+            p.setColor(Color.BLACK);
+            c.drawCircle(x - 46 * s, y - 9 * s, 4 * s, p);
+
+            p.setColor(Color.rgb(173, 91, 108));
+            c.drawOval(x - 4 * s, y - 51 * s,
+                    x + 42 * s, y - 22 * s, p);
+
+            p.setColor(Color.argb(150, 240, 250, 255));
+            for (int i = 0; i < 8; i++) {
+                c.drawCircle(
+                        x - 66 + i * 20,
+                        y + 42 + (float)Math.sin(now / 180.0 + i) * 7,
+                        3 + i % 2, p
+                );
+            }
+        }
+
+        void drawCharacter(Canvas c, float x, float y, int id, float scale, boolean rodVisible) {
+            // Head.
+            p.setColor(Color.rgb(242, 205, 164));
+            c.drawCircle(x, y - 70 * scale, 19 * scale, p);
+
+            // Hair.
+            p.setColor(id == 1 ? Color.BLACK : Color.rgb(64, 58, 52));
+            c.drawCircle(x, y - 80 * scale, 21 * scale, p);
+
+            // Body.
+            p.setColor(characterColor[id]);
+            c.drawRoundRect(
+                    x - 24 * scale, y - 52 * scale,
+                    x + 24 * scale, y + 12 * scale,
+                    10 * scale, 10 * scale, p
+            );
+
+            // Legs.
+            p.setColor(Color.rgb(43, 46, 50));
+            c.drawRect(x - 15 * scale, y + 10 * scale,
+                    x - 3 * scale, y + 40 * scale, p);
+            c.drawRect(x + 3 * scale, y + 10 * scale,
+                    x + 15 * scale, y + 40 * scale, p);
+
+            // Simple arms / pose.
+            p.setColor(Color.rgb(242, 205, 164));
+            p.setStrokeWidth(7 * scale);
+            c.drawLine(x - 17 * scale, y - 38 * scale,
+                    x - 31 * scale, y - 10 * scale, p);
+            c.drawLine(x + 17 * scale, y - 38 * scale,
+                    x + 31 * scale, y - 10 * scale, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(10 * scale);
+            center(c, characterNames[id], x, y + 58 * scale);
+
+            if (rodVisible) {
+                p.setColor(Color.rgb(88, 55, 29));
+                p.setStrokeWidth(5 * scale);
+                c.drawLine(x + 24 * scale, y - 25 * scale,
+                        x + 78 * scale, y - 82 * scale, p);
+            }
+        }
+
+        void drawTowTruck(Canvas c, int w, int h, long now) {
+            float progress = 1f - Math.max(0,
+                    activeSkillEnd - now) / 2500f;
+            float x = -160 + (w * .46f + 160) * progress;
+            float y = h * .61f;
+
+            p.setColor(Color.rgb(60, 132, 64));
+            c.drawRoundRect(x - 75, y - 28, x + 78, y + 22, 13, 13, p);
+
+            p.setColor(Color.rgb(205, 219, 224));
+            c.drawRect(x + 12, y - 20, x + 60, y + 8, p);
+
+            p.setColor(Color.DKGRAY);
+            c.drawCircle(x - 48, y + 24, 23, p);
+            c.drawCircle(x + 50, y + 22, 17, p);
+
+            p.setColor(Color.BLACK);
+            c.drawCircle(x - 48, y + 24, 11, p);
+            c.drawCircle(x + 50, y + 22, 8, p);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(22);
+            c.drawText("XE KÉO!", x - 58, y + 66, p);
+        }
+
+        void drawSkyBurst(Canvas c, int w, int h, long now) {
+            float pulse = 1f + (float)Math.sin(now / 90f) * .12f;
+            float cx = w * .66f;
+            float cy = h * .50f;
+
+            p.setColor(Color.argb(75, 185, 65, 255));
+            c.drawCircle(cx, cy, 120 * pulse, p);
+
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(12);
+            p.setColor(Color.rgb(193, 48, 240));
+            for (int i = 0; i < 8; i++) {
+                float a = (float)(i * Math.PI / 4.0 + now / 700.0);
+                c.drawLine(
+                        cx, cy,
+                        cx + (float)Math.cos(a) * 170,
+                        cy + (float)Math.sin(a) * 120,
+                        p
+                );
+            }
+            p.setStyle(Paint.Style.FILL);
+
+            p.setColor(Color.MAGENTA);
+            p.setTextSize(23);
+            center(c, "-" + formatNumber(600000), cx, cy - 20);
+            center(c, "-" + formatNumber(600000), cx + 35, cy + 12);
+            center(c, "-" + formatNumber(600000), cx - 35, cy + 45);
+        }
+
+        void drawShield(Canvas c, int w, int h, long now) {
+            float pulse = 1f + (float)Math.sin(now / 130f) * .08f;
+            float cx = w * .45f;
+            float cy = h * .58f;
+
+            p.setColor(Color.argb(65, 90, 190, 255));
+            c.drawCircle(cx, cy, 85 * pulse, p);
+
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeWidth(10);
+            p.setColor(Color.rgb(112, 203, 255));
+            c.drawCircle(cx, cy, 65 * pulse, p);
+            p.setStyle(Paint.Style.FILL);
+
+            p.setColor(Color.WHITE);
+            p.setTextSize(20);
+            center(c, "HỘ NGƯ", cx, cy + 7);
+        }
+
+        void updateGame(long now) {
+            if (page != GAME) return;
+
+            if (fishing && !fishBiting && now >= nextBite) {
+                startFishFight(now);
+            }
+
+            if (!fishBiting || finished) return;
+
+            if (lastPhysics == 0) lastPhysics = now;
+            if (now - lastPhysics >= 600) {
+                lastPhysics = now;
+
+                lineTension += 4 + random.nextInt(6);
+                lineLength += .15f + random.nextFloat() * .18f;
+
+                if (reelPressed) {
+                    lineTension += 3;
+                }
+
+                if (lineTension > 100) lineTension = 100;
+                if (lineLength > 10f) lineLength = 10f;
+            }
+
+            reelPressed = false;
+
+            fishX += fishVX;
+            if (fishX < .58f || fishX > .90f) fishVX = -fishVX;
+            fishY = .50f + (float)Math.sin(now / 230.0) * .035f;
+
+            if (activeSkill >= 0 && now < activeSkillEnd) {
+                if (activeSkill == 1 && now - skillTick >= 300) {
+                    skillTick = (int)now;
+                    long damage = 600000L;
+                    fishHp -= damage;
+                }
+            }
+
+            if (fishHp <= 0) {
+                fishHp = 0;
+                finishCatch();
+                return;
+            }
+
+            if (lineTension >= 100) {
+                fishBiting = false;
+                fishing = false;
+                lineTension = 20;
+                lineLength = 2.5f;
+                notice = "Đứt cáp! Hãy giảm căng dây và thử lại.";
+                activeSkill = -1;
+                return;
+            }
+        }
+
+        void startFishFight(long now) {
+            fishBiting = true;
+            fishing = true;
+            fishLevel = selectedLevel;
+            fishName = fishLevel >= 8 ? "Hạo Đạo Đế" : "Cá Vạn Cân";
+            fishMaxHp = 9999999L + fishLevel * 1000000L;
+            fishHp = fishMaxHp;
+            fishX = .78f;
+            fishY = .50f;
+            fishVX = .0021f + fishLevel * .0001f;
+            lineTension = 14;
+            lineLength = .7f;
+            lastPhysics = now;
+            notice = "Cá đã cắn! Cả 3 nhân vật đang câu cùng lúc.";
+        }
+
+        void castAll() {
+            if (energy < 5) {
+                notice = "Hết năng lượng.";
+                return;
+            }
+
+            energy -= 5;
+            fishing = true;
+            fishBiting = false;
+            finished = false;
+            activeSkill = -1;
+            lineTension = 12;
+            lineLength = .7f;
+
+            long now = System.currentTimeMillis();
+            nextBite = now + 1200;
+            lastPhysics = 0;
+
+            notice = "Cả 3 nhân vật cùng thả câu...";
+        }
+
+        void reel() {
+            if (!fishBiting || finished) return;
+
+            long now = System.currentTimeMillis();
+            if (now - lastReel < 160) return;
+            lastReel = now;
+            reelPressed = true;
+
+            long damage = 330000L
+                    + (long)rodPower[equippedRod] * 90000L
+                    + (long)selectedLevel * 10000L;
+
+            fishHp -= damage;
+            lineTension += 7;
+            lineLength = Math.max(.5f, lineLength - .35f);
+
+            if (fishHp < 0) fishHp = 0;
+            notice = "Co lại dây! -" + formatNumber(damage) + " HP";
+        }
+
+        void loosen() {
+            if (!fishBiting || finished) return;
+
+            lineTension -= 30;
+            if (lineTension < 5) lineTension = 5;
+            lineLength = Math.max(.6f, lineLength - .6f);
+            notice = "Đã giảm cáp, hạ độ căng dây.";
+        }
+
+        void useSkill(int who) {
+            if (!fishBiting || finished) {
+                notice = "Kỹ năng chỉ dùng khi cá đã cắn.";
+                return;
+            }
+
+            long now = System.currentTimeMillis();
+            if (now < skillReadyAt[who]) {
+                notice = characterNames[who] + ": kỹ năng đang hồi.";
+                return;
+            }
+
+            skillReadyAt[who] = now + (who == 1 ? 12000 : 8000);
+            activeSkill = who;
+            activeSkillEnd = now + (who == 1 ? 2100 : 2500);
+            skillTick = (int)now;
+
+            if (who == 0) {
+                lineTension -= 48;
+                if (lineTension < 4) lineTension = 4;
+                lineLength = Math.max(.5f, lineLength - 3.2f);
+                fishHp -= 800000L;
+                notice = "SỞ TÂM dùng XE KÉO! Kéo cá về gần bờ.";
+            } else if (who == 1) {
+                fishHp -= 600000L;
+                lineTension -= 20;
+                if (lineTension < 5) lineTension = 5;
+                notice = "BÁ THƯỜNG dùng PHI THIÊN VÔ CỰC!";
+            } else {
+                lineTension -= 45;
+                if (lineTension < 3) lineTension = 3;
+                notice = "LÃO NGÔ dùng HỘ NGƯ! Ổn định dây cho cả đội.";
+            }
+
+            if (fishHp < 0) fishHp = 0;
+        }
+
+        void finishCatch() {
+            finished = true;
+            fishBiting = false;
+            fishing = false;
+            long reward = 500000L + (long)selectedLevel * 150000L;
+            money += reward;
+            notice = "Bắt được " + fishName + "!";
+        }
+
+        String rewardText() {
+            return "" + (500000L + (long)selectedLevel * 150000L);
+        }
+
+        void drawRewardPanel(Canvas c, int w, int h) {
+            // Reserved for future expansion.
+        }
+
+        boolean hit(float x, float y, float l, float t, float r, float b) {
+            return x >= l && x <= r && y >= t && y <= b;
+        }
+
+        void button(Canvas c, float l, float t, float r, float b,
+                    String text, int color, float size) {
+            p.setColor(Color.argb(85, 0, 0, 0));
+            c.drawRoundRect(l + 3, t + 4, r + 3, b + 4, 12, 12, p);
+            p.setColor(color);
+            c.drawRoundRect(l, t, r, b, 12, 12, p);
+            p.setColor(Color.WHITE);
+            p.setTextSize(size);
+            center(c, text, (l + r) / 2f, (t + b) / 2f + 5);
+        }
+
+        void center(Canvas c, String text, float x, float y) {
+            c.drawText(text, x - p.measureText(text) / 2f, y, p);
+        }
+
+        String moneyText() {
+            if (money >= 1000000) {
+                return String.format(java.util.Locale.US, "%.2fTr", money / 1000000.0);
+            }
+            if (money >= 1000) {
+                return String.format(java.util.Locale.US, "%.1fK", money / 1000.0);
+            }
+            return String.valueOf(money);
+        }
+
+        String formatNumber(long n) {
+            if (Math.abs(n) >= 1000000L) {
+                return String.format(java.util.Locale.US, "%.2fM", n / 1000000.0);
+            }
+            if (Math.abs(n) >= 1000L) {
+                return String.format(java.util.Locale.US, "%.1fK", n / 1000.0);
+            }
+            return String.valueOf(n);
+        }
+
+        @Override
+        public boolean onTouchEvent(MotionEvent e) {
+            if (e.getAction() != MotionEvent.ACTION_UP) return true;
+
+            float x = e.getX();
+            float y = e.getY();
+            int w = getWidth();
+            int h = getHeight();
+
+            if (page == HOME) {
+                float top = h * .15f;
+                if (hit(x, y, 22, top, 237, top + 55)) {
+                    page = LEVELS;
+                } else if (hit(x, y, 22, top + 67, 237, top + 122)) {
+                    page = LEVELS;
+                } else if (hit(x, y, 22, top + 134, 237, top + 189)) {
+                    page = CHARACTERS;
+                } else if (hit(x, y, 22, top + 201, 237, top + 256)) {
+                    page = SHOP;
+                } else if (hit(x, y, 22, top + 268, 237, top + 323)) {
+                    page = SKILLS;
+                }
+                invalidate();
                 return true;
             }
 
-            if(y>=h-108&&y<=h-18&&x>=16&&x<=525){
-                int i=(int)((x-28)/156f); if(i>=0&&i<3){selected=i;message="Đã chọn "+names[i];invalidate();return true;}
+            if (page == LEVELS) {
+                if (hit(x, y, 18, 10, 55, 70)) {
+                    page = HOME;
+                } else {
+                    int cols = 3;
+                    float startX = 70;
+                    float startY = 85;
+                    float cardW = (w - 190) / 3f;
+                    for (int i = 0; i < 9; i++) {
+                        int row = i / cols;
+                        int col = i % cols;
+                        float bx = startX + col * (cardW + 25);
+                        float by = startY + row * 130;
+                        if (i < 4 && hit(x, y, bx, by, bx + cardW, by + 115)) {
+                            selectedLevel = i + 1;
+                            page = GAME;
+                            castAll();
+                            break;
+                        }
+                    }
+                }
+                invalidate();
+                return true;
             }
 
-            if(x>=680&&x<=815&&y>=h-105){equipment=true;invalidate();return true;}
-            if(x>=550&&x<=670&&y>=h-105){sellFish();return true;}
-
-            if(state==0&&x>=825&&x<=970&&y>=h-110){castLine();return true;}
-
-            if(state==2){
-                float cx=w-91,cy=h-76;
-                if(Math.hypot(x-cx,y-cy)<=70){reel();return true;}
-                if(x>=w-225&&x<=w-112&&y>=h-170&&y<=h-104){loosen();return true;}
-                if(x>=825&&x<=1020&&y>=h-170&&y<=h-104){useSkill();return true;}
+            if (page == CHARACTERS) {
+                if (hit(x, y, 18, 10, 55, 70)) {
+                    page = HOME;
+                } else {
+                    float cardW = (w - 90) / 3f;
+                    for (int i = 0; i < 3; i++) {
+                        float bx = 20 + i * (cardW + 15);
+                        if (hit(x, y, bx, 85, bx + cardW, h - 36)) {
+                            selectedCharacter = i;
+                            notice = "Đã chọn " + characterNames[i] + ".";
+                            break;
+                        }
+                    }
+                }
+                invalidate();
+                return true;
             }
+
+            if (page == SHOP) {
+                if (hit(x, y, 18, 10, 55, 70)) {
+                    page = HOME;
+                } else {
+                    for (int i = 0; i < rodNames.length; i++) {
+                        float by = 80 + i * 73;
+                        if (hit(x, y, 55, by, w - 55, by + 58)) {
+                            if (i == equippedRod) {
+                                notice = rodNames[i] + " đang được dùng.";
+                            } else if (money >= rodPrice[i]) {
+                                money -= rodPrice[i];
+                                equippedRod = i;
+                                notice = "Đã mua và trang bị " + rodNames[i] + ".";
+                            } else {
+                                notice = "Không đủ tiền mua " + rodNames[i] + ".";
+                            }
+                            break;
+                        }
+                    }
+                }
+                invalidate();
+                return true;
+            }
+
+            if (page == SKILLS) {
+                if (hit(x, y, 18, 10, 55, 70)) {
+                    page = HOME;
+                    invalidate();
+                    return true;
+                }
+                return true;
+            }
+
+            if (page == GAME) {
+                if (finished) {
+                    if (hit(x, y, w * .38f, h * .52f,
+                            w * .62f, h * .52f + 58)) {
+                        finished = false;
+                        selectedLevel = Math.min(9, selectedLevel + 1);
+                        castAll();
+                    } else if (hit(x, y, w * .38f, h * .52f + 72,
+                            w * .62f, h * .52f + 130)) {
+                        page = HOME;
+                    }
+                    invalidate();
+                    return true;
+                }
+
+                if (!fishing && !fishBiting &&
+                        hit(x, y, 32, h - 92, 220, h - 37)) {
+                    castAll();
+                    invalidate();
+                    return true;
+                }
+
+                if (hit(x, y, w - 165, h - 145, w - 35, h - 10)) {
+                    reel();
+                    invalidate();
+                    return true;
+                }
+
+                if (hit(x, y, w - 245, h - 145, w - 115, h - 80)) {
+                    loosen();
+                    invalidate();
+                    return true;
+                }
+
+                for (int i = 0; i < 3; i++) {
+                    float sx = 24 + i * 165;
+                    if (hit(x, y, sx, h - 92, sx + 148, h - 37)) {
+                        useSkill(i);
+                        invalidate();
+                        return true;
+                    }
+                }
+
+                // Top-left back area.
+                if (hit(x, y, 16, 10, 180, 52)) {
+                    page = HOME;
+                    fishing = false;
+                    fishBiting = false;
+                }
+
+                invalidate();
+                return true;
+            }
+
             return true;
-        }
-
-        void castLine(){
-            if(energy<5){message="Hết năng lượng!";invalidate();return;}
-            energy-=5;state=1;biteAt=System.currentTimeMillis()+1400+random.nextInt(2600);
-            message="Thả lưỡi... chờ cá cắn";invalidate();
-        }
-
-        void beginBattle(){
-            state=2; fishWeight=weights[random.nextInt(weights.length)];
-            fishMaxHp=4500+fishWeight*250; fishHp=fishMaxHp; tension=24;
-            fishX=.78f; fishY=.52f; fishSpeed=random.nextBoolean()?0.0028f:-0.0028f;
-            lastTick=System.currentTimeMillis(); skillHits=0;
-            message="Cá cắn! Co lại dây, tránh để đứt dây.";
-        }
-
-        void updateBattle(long now){
-            fishX+=fishSpeed; if(fishX<.65f||fishX>.88f) fishSpeed=-fishSpeed;
-            fishY=.52f+(float)Math.sin(now/240.0)*.025f;
-            if(now-lastTick>700){tension+=5+random.nextInt(5);lastTick=now;}
-            tension--; if(tension<7)tension=7;
-            if(tension>=100){state=0;fishHp=fishMaxHp=0;tension=18;message="Đứt dây! Cá chạy mất.";return;}
-            if(fishHp<=0) landFish();
-        }
-
-        void reel(){
-            if(state!=2)return;
-            int damage=rodPower[rod]/3+basePower[selected];
-            if(skillHits>0){damage+=130;skillHits--;}
-            fishHp-=damage;tension+=10+random.nextInt(8);
-            if(fishHp<0)fishHp=0; message="Co lại dây  -"+damage+" HP";invalidate();
-        }
-
-        void loosen(){
-            if(state!=2)return;
-            tension-=29;if(tension<5)tension=5;
-            message="Giảm cáp  •  Hạ độ căng dây";invalidate();
-        }
-
-        void useSkill(){
-            if(state!=2){message="Chỉ dùng kỹ năng khi cá đã cắn.";invalidate();return;}
-            long now=System.currentTimeMillis();
-            if(now<skillCooldownEnd){message="Kỹ năng đang hồi "+((skillCooldownEnd-now+999)/1000)+"s";invalidate();return;}
-            skillCooldownEnd=now+8000;
-            if(selected==0){
-                tractor=true;tractorEnd=now+3000;skillHits=8;message="XE KÉO! Sở Tâm tăng lực kéo.";
-                handler.postDelayed(new Runnable(){@Override public void run(){tractor=false;invalidate();}},3000);
-            }else if(selected==1){
-                flash=true;skillHits=10;tension-=30;if(tension<5)tension=5;message="PHI THIÊN VÔ CỰC!";
-                handler.postDelayed(new Runnable(){@Override public void run(){flash=false;invalidate();}},750);
-            }else{
-                flash=true;skillHits=6;tension-=18;if(tension<5)tension=5;message="HỘ LỰC! Lão Ngô tăng lực kéo.";
-                handler.postDelayed(new Runnable(){@Override public void run(){flash=false;invalidate();}},550);
-            }
-            invalidate();
-        }
-
-        void landFish(){
-            int reward=fishWeight*3; money+=reward; energy=Math.min(100,energy+10);
-            bag.add(new Fish(currentFishName(),fishWeight)); state=0;tension=18;fishHp=fishMaxHp=0;
-            message="Bắt được "+currentFishName()+" • "+fishWeight+" kg • +"+reward+"$";
-        }
-
-        String currentFishName(){
-            if(fishWeight<=50)return fishNames[0];
-            if(fishWeight<=100)return fishNames[1];
-            if(fishWeight<=200)return fishNames[2];
-            if(fishWeight<=400)return fishNames[3];
-            if(fishWeight<=800)return fishNames[4];
-            if(fishWeight<=1200)return fishNames[5];
-            if(fishWeight<=2000)return fishNames[6];
-            if(fishWeight<=5000)return fishNames[7];
-            return fishNames[8];
-        }
-
-        int level(int i){return i==0?80:i==1?100:44;}
-
-        void sellFish(){
-            if(bag.isEmpty())message="Kho cá đang trống.";
-            else{int total=0;for(Fish f:bag)total+=f.weight*3;money+=total;bag.clear();message="Đã bán toàn bộ cá +"+total+"$";}
-            invalidate();
-        }
-
-        void center(Canvas c,String s,float x,float y){c.drawText(s,x-p.measureText(s)/2f,y,p);}
-
-        static class Fish{
-            String name; int weight;
-            Fish(String n,int w){name=n;weight=w;}
         }
     }
 }
