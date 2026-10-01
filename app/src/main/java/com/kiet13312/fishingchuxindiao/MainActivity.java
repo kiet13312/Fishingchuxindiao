@@ -239,92 +239,245 @@ public class MainActivity extends Activity {
         }
 
         void drawFishing(Canvas c,int w,int h){
-            bgLake(c,w,h);
-            panel(c,18,18,315,88,Color.argb(200,16,20,23));
-            txt(c,"Lv 80   con ng",32,40,15,Color.WHITE);txt(c,"3 NGƯỜI CÙNG CÂU",32,60,12,Color.WHITE);
-            txt(c,"Màn "+(map+1)+" • Cá đang câu: "+fishNames[fishIdx],32,78,11,Color.YELLOW);
+            long now=System.currentTimeMillis();
+            float pulse=(float)((Math.sin(now/90.0)+1)/2.0);
+            float pull=(fishHooked?0.035f:0.012f)+(tension/100f)*0.025f;
 
-            panel(c,w*.36f,18,w*.70f,86,Color.argb(210,13,18,22));
-            txt(c,"Cá "+fishNames[fishIdx]+"   Lv 100",w*.39f,43,16,Color.WHITE);
-            p.setColor(Color.DKGRAY);c.drawRoundRect(w*.39f,54,w*.67f,69,8,8,p);
-            p.setColor(Color.RED);float hp=fishMax==0?1:(float)Math.max(0,fishHp)/fishMax;c.drawRoundRect(w*.39f,54,w*.39f+w*.28f*hp,69,8,8,p);
-            txt(c,Math.max(0,fishHp)+"/"+fishMax,w*.505f,66,10,Color.WHITE);
+            // Bright outdoor lake scene, matching the composition/style of the supplied reference
+            // without copying its original frames or artwork.
+            LinearGradient sky=new LinearGradient(0,0,0,h*.34f,
+                    Color.rgb(78,177,239),Color.rgb(190,232,255),Shader.TileMode.CLAMP);
+            p.setShader(sky); c.drawRect(0,0,w,h*.34f,p); p.setShader(null);
 
-            panel(c,w-240,18,w-20,88,Color.argb(200,13,18,22));
-            txt(c,"💰 "+money+"$",w-220,45,16,Color.YELLOW);txt(c,rodNames[rod]+" • "+rodPower[rod]+" kg",w-220,68,13,Color.WHITE);
+            // distant hills
+            p.setColor(Color.rgb(74,160,87));
+            Path hill=new Path();
+            hill.moveTo(0,h*.30f); hill.cubicTo(w*.12f,h*.18f,w*.23f,h*.27f,w*.36f,h*.20f);
+            hill.cubicTo(w*.49f,h*.13f,w*.63f,h*.27f,w*.78f,h*.17f);
+            hill.cubicTo(w*.87f,h*.13f,w*.95f,h*.21f,w,h*.16f);
+            hill.lineTo(w,h*.39f); hill.lineTo(0,h*.39f); hill.close(); c.drawPath(hill,p);
 
-            float base=h*playerY;
+            // water
+            LinearGradient water=new LinearGradient(0,h*.31f,0,h*.88f,
+                    Color.rgb(36,170,210),Color.rgb(29,105,170),Shader.TileMode.CLAMP);
+            p.setShader(water); c.drawRect(0,h*.31f,w,h*.88f,p); p.setShader(null);
+
+            p.setColor(Color.argb(105,255,255,255));
+            for(int i=0;i<17;i++){
+                float yy=h*.36f+i*h*.026f;
+                float sway=(float)Math.sin(now/700.0+i)*16;
+                c.drawLine(w*.02f+sway,yy,w*.28f+sway+35,yy+5,p);
+                c.drawLine(w*.46f-sway,yy+9,w*.82f-sway,yy+3,p);
+                c.drawLine(w*.77f+sway,yy+17,w*.98f+sway,yy+11,p);
+            }
+
+            // grassy bank / rocks
+            p.setColor(Color.rgb(93,181,67)); c.drawRect(0,h*.78f,w,h,p);
+            p.setColor(Color.rgb(145,199,92));
+            for(int i=0;i<32;i++) c.drawCircle((i*73)%Math.max(1,w),h*.77f+(i%4)*8,8+(i%4)*3,p);
+            p.setColor(Color.rgb(123,105,80));
+            for(int i=0;i<20;i++) c.drawOval((i*97)%Math.max(1,w),h*.80f+(i%3)*18,(i*97)%Math.max(1,w)+26,h*.80f+(i%3)*18+11,p);
+
+            // Small top labels; keep the gameplay scene dominant.
+            panel(c,18,16,242,69,Color.argb(150,8,20,29));
+            txt(c,"CÂU CÁ VẠN CÂN",31,41,17,Color.WHITE);
+            txt(c,"Màn "+(map+1)+"   •   "+fishNames[fishIdx],31,59,11,Color.YELLOW);
+
+            panel(c,w-272,16,w-18,74,Color.argb(155,8,20,29));
+            txt(c,"CÁ "+fishNames[fishIdx],w-250,38,14,Color.WHITE);
+            p.setColor(Color.argb(120,0,0,0)); c.drawRoundRect(w-250,48,w-42,63,8,8,p);
+            float hp=fishMax==0?1:(float)Math.max(0,fishHp)/fishMax;
+            p.setColor(Color.rgb(242,68,68)); c.drawRoundRect(w-250,48,w-250+208*hp,63,8,8,p);
+            txt(c,Math.max(0,fishHp)+" / "+fishMax,w-180,59,9,Color.WHITE);
+
+            // Three characters physically fish together.
+            float base=h*.765f;
             for(int i=0;i<3;i++){
                 float px=w*playerX[i];
-                drawPerson(c,px,base,i,1.35f);center(c,names[i],px,base+55,11,Color.WHITE);
-                p.setStyle(Paint.Style.STROKE);p.setColor(Color.WHITE);p.setStrokeWidth(2.4f+i);
-                float sx=px+105,sy=base-75,ex=w*(.67f+i*.045f),ey=h*(.57f+i*.016f);
-                Path q=new Path();q.moveTo(sx,sy);q.quadTo((sx+ex)/2,sy-42,ex,ey);q.quadTo(ex+33,ey-8,ex+62,ey);c.drawPath(q,p);p.setStyle(Paint.Style.FILL);
+                float lean=(float)Math.sin(now/160.0+i*.8)*2.2f + (fishHooked?(-4-i*2):0);
+                drawHero(c,px,base,i,1.20f,lean,pull);
+                center(c,names[i],px,base+45,11,Color.WHITE);
+
+                float rodTipX=w*(.72f+i*.055f);
+                float rodTipY=h*(.40f+i*.035f)+(float)Math.sin(now/180.0+i)*8;
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeCap(Paint.Cap.ROUND);
+                p.setStrokeWidth(4.3f-i*.25f);
+                p.setColor(Color.rgb(63,43,30));
+                c.drawLine(px+25,base-72,rodTipX,rodTipY,p);
+                p.setStrokeWidth(1.7f);
+                p.setColor(Color.WHITE);
+                Path line=new Path();
+                line.moveTo(rodTipX,rodTipY);
+                line.quadTo((rodTipX+w*.80f)/2,rodTipY+h*.05f,(w*.81f),h*.56f+i*5);
+                line.quadTo(w*.84f+(float)Math.sin(now/240.0+i)*18,h*.54f,
+                        w*.86f,h*.57f);
+                c.drawPath(line,p);
+                p.setStyle(Paint.Style.FILL);
             }
 
-            float fx=w*fishX,fy=h*fishY;
-            p.setColor(Color.rgb(90,57,100));c.drawOval(fx-72,fy-30,fx+72,fy+30,p);
-            p.setColor(Color.rgb(145,75,90));Path tail=new Path();tail.moveTo(fx+58,fy);tail.lineTo(fx+112,fy-45);tail.lineTo(fx+100,fy);tail.lineTo(fx+112,fy+45);tail.close();c.drawPath(tail,p);
-            p.setColor(Color.WHITE);c.drawCircle(fx-42,fy-6,8,p);p.setColor(Color.BLACK);c.drawCircle(fx-42,fy-6,3,p);
+            // Large animated fish/monster under the lines.
+            float fx=w*(.825f+(float)Math.sin(now/330.0)*.025f);
+            float fy=h*(.575f+(float)Math.sin(now/210.0)*.045f);
+            if(fishHooked) fx-=w*.018f;
+            drawActionFish(c,fx,fy,1.0f+pulse*.05f,fishHooked);
 
-            panel(c,18,h-96,w-330,h-16,Color.argb(215,15,18,22));
-            for(int i=0;i<3;i++){
-                float l=28+i*120;p.setColor(clothes[i]);c.drawRoundRect(l,h-84,l+110,h-26,12,12,p);
-                txt(c,skillNames[i],l+8,h-61,10,Color.WHITE);txt(c,"KÍCH HOẠT",l+8,h-39,9,Color.YELLOW);
+            // Water splash where the fish fights.
+            if(fishHooked){
+                p.setColor(Color.argb(145,255,255,255));
+                for(int i=0;i<12;i++){
+                    double a=i*Math.PI/6.0 + now/5000.0;
+                    float rr=28+((i%3)*14)+(float)(pulse*12);
+                    c.drawCircle(fx+(float)Math.cos(a)*rr,fy+(float)Math.sin(a)*rr*.45f,3+(i%3),p);
+                }
+                center(c,"KÉO!!!",w*.80f,h*.34f,28,Color.WHITE);
             }
 
-            float cx=w-95,cy=h-65;
-            p.setColor(Color.argb(90,0,0,0));c.drawCircle(cx+4,cy+5,64,p);p.setColor(Color.rgb(23,27,31));c.drawCircle(cx,cy,62,p);
-            p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(5);p.setColor(Color.WHITE);c.drawCircle(cx,cy,56,p);p.setStyle(Paint.Style.FILL);
-            center(c,fishHooked?"CO LẠI DÂY":"THẢ LƯỠI",cx,cy+5,15,Color.WHITE);
+            // Bottom control strip.
+            panel(c,18,h-92,w-358,h-14,Color.argb(150,7,18,26));
+            for(int i=0;i<3;i++) drawSkillButton(c,34+i*112,h-79,134+i*112,h-25,i);
 
-            p.setColor(Color.rgb(44,24,23));c.drawRect(w-145,h*.47f,w-125,h*.77f,p);
-            p.setColor(tension>75?Color.RED:Color.rgb(242,190,45));c.drawRect(w-145,h*.77f-(h*.30f)*(tension/100f),w-125,h*.77f,p);
-            txt(c,"Căng dây",w-155,h*.45f,11,Color.WHITE);
-
-            txt(c,toast,24,h-108,12,Color.WHITE);
-            // virtual joystick: drag the knob to move the selected character
-            float jx=95, jy=h-170;
-            p.setColor(Color.argb(80,0,0,0)); c.drawCircle(jx+4,jy+5,JOY_R+8,p);
-            p.setColor(Color.argb(175,20,28,34)); c.drawCircle(jx,jy,JOY_R+5,p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.argb(210,220,235,240)); c.drawCircle(jx,jy,JOY_R,p);
+            // Virtual joystick remains available, but visually blends into the scene.
+            float jx=94,jy=h-151;
+            p.setColor(Color.argb(95,0,0,0)); c.drawCircle(jx,jy,62,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.argb(220,255,255,255)); c.drawCircle(jx,jy,55,p);
             p.setStyle(Paint.Style.FILL);
             float kx=joystickActive?joystickKnobX:jx, ky=joystickActive?joystickKnobY:jy;
-            p.setColor(Color.argb(220,245,187,50)); c.drawCircle(kx,ky,27,p);
-            center(c,"JOYSTICK",jx,jy+82,10,Color.WHITE);
-            if(skillFX && System.currentTimeMillis()<skillFxUntil) drawSkillFX(c,w,h);
+            p.setColor(Color.argb(220,255,214,62)); c.drawCircle(kx,ky,25,p);
+
+            // Main pull button.
+            float bx=w-93,by=h-61;
+            p.setColor(Color.argb(105,0,0,0)); c.drawCircle(bx+3,by+5,62,p);
+            p.setColor(Color.rgb(18,80,115)); c.drawCircle(bx,by,58,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(5); p.setColor(Color.WHITE); c.drawCircle(bx,by,52,p);
+            p.setStyle(Paint.Style.FILL);
+            center(c,fishHooked?"KÉO":"THẢ CÂU",bx,by+5,16,Color.WHITE);
+
+            // Tension meter, deliberately high-contrast like an action HUD.
+            float barL=w*.57f,barR=w*.75f,barT=16,barB=29;
+            p.setColor(Color.argb(120,0,0,0)); c.drawRoundRect(barL,barT,barR,barB,7,7,p);
+            p.setColor(tension>78?Color.RED:Color.rgb(249,207,58));
+            c.drawRoundRect(barL,barT,barL+(barR-barL)*(tension/100f),barB,7,7,p);
+            center(c,"LỰC DÂY "+((int)tension)+"%",(barL+barR)/2,barB+17,11,Color.WHITE);
+
+            if(skillFX && now<skillFxUntil) drawSkillFX(c,w,h);
             else skillFX=false;
 
-            fishX+=fishV;
-            if(fishX<.68f||fishX>.89f)fishV=-fishV;
-            fishY=.51f+(float)Math.sin(System.currentTimeMillis()/260.0)*.03f;
+            // Fish animation / tension simulation.
+            fishX=fx/w; fishY=fy/h;
+            fishX+=fishV*.70f;
+            if(fishX<.70f||fishX>.90f)fishV=-fishV;
             if(fishHooked){
-                tension+=.11f;
+                tension+=.08f;
                 if(tension>100)tension=100;
+            }else{
+                tension=Math.max(12,tension-.025f);
             }
         }
 
+        void drawHero(Canvas c,float x,float y,int who,float sc,float lean,float pull){
+            // Distinct cartoon silhouettes for the three fishers.
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(Color.argb(80,0,0,0)); c.drawOval(x-35*sc,y+45*sc,x+38*sc,y+60*sc,p);
+
+            // legs
+            p.setColor(Color.rgb(57,50,52));
+            c.drawRoundRect(x-15*sc,y+3*sc,x-3*sc,y+43*sc,5*sc,5*sc,p);
+            c.drawRoundRect(x+3*sc,y+3*sc,x+15*sc,y+43*sc,5*sc,5*sc,p);
+
+            // torso with a leaning pose
+            p.setColor(clothes[who]);
+            c.drawRoundRect(x-24*sc+lean,y-47*sc,x+25*sc+lean,y+8*sc,12*sc,12*sc,p);
+
+            // head / hair
+            p.setColor(Color.rgb(248,211,165)); c.drawCircle(x+lean,y-70*sc,18*sc,p);
+            p.setColor(who==0?Color.rgb(35,32,38):who==1?Color.rgb(20,20,26):Color.rgb(146,137,128));
+            c.drawOval(x-20*sc+lean,y-87*sc,x+20*sc+lean,y-67*sc,p);
+            if(who==2) c.drawOval(x-19*sc+lean,y-88*sc,x+18*sc+lean,y-54*sc,p);
+
+            // face
+            p.setColor(Color.rgb(40,30,30)); c.drawCircle(x-6*sc+lean,y-70*sc,2*sc,p); c.drawCircle(x+6*sc+lean,y-70*sc,2*sc,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2*sc); p.setColor(Color.rgb(80,45,40));
+            c.drawLine(x-4*sc+lean,y-62*sc,x+6*sc+lean,y-62*sc,p);
+
+            // pulling arms
+            p.setStrokeCap(Paint.Cap.ROUND); p.setStrokeWidth(8*sc); p.setColor(Color.rgb(248,211,165));
+            float armY=y-25*sc-pull*380;
+            c.drawLine(x-15*sc+lean,y-18*sc,x+7*sc+lean,armY,p);
+            c.drawLine(x+15*sc+lean,y-18*sc,x+12*sc+lean,armY+5*sc,p);
+            p.setStyle(Paint.Style.FILL);
+            c.drawCircle(x+8*sc+lean,armY,6*sc,p); c.drawCircle(x+13*sc+lean,armY+4*sc,6*sc,p);
+        }
+
+        void drawActionFish(Canvas c,float x,float y,float sc,boolean hooked){
+            p.setColor(hooked?Color.rgb(91,66,160):Color.rgb(53,102,163));
+            c.drawOval(x-86*sc,y-38*sc,x+76*sc,y+38*sc,p);
+
+            // head / eye
+            p.setColor(Color.WHITE); c.drawCircle(x-50*sc,y-8*sc,11*sc,p);
+            p.setColor(Color.BLACK); c.drawCircle(x-50*sc,y-8*sc,4*sc,p);
+
+            // tail
+            Path tail=new Path();
+            tail.moveTo(x+62*sc,y); tail.lineTo(x+125*sc,y-52*sc); tail.lineTo(x+111*sc,y);
+            tail.lineTo(x+125*sc,y+52*sc); tail.close(); c.drawPath(tail,p);
+
+            // fins
+            p.setColor(Color.rgb(166,83,116));
+            Path fin=new Path(); fin.moveTo(x-5*sc,y-25*sc); fin.lineTo(x+30*sc,y-62*sc); fin.lineTo(x+38*sc,y-18*sc); fin.close(); c.drawPath(fin,p);
+            Path fin2=new Path(); fin2.moveTo(x+5*sc,y+23*sc); fin2.lineTo(x+35*sc,y+56*sc); fin2.lineTo(x+42*sc,y+18*sc); fin2.close(); c.drawPath(fin2,p);
+
+            if(hooked){
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.WHITE);
+                c.drawArc(x-40*sc,y-12*sc,x+40*sc,y+20*sc,15,125,false,p);
+                p.setStyle(Paint.Style.FILL);
+            }
+        }
+
+        void drawSkillButton(Canvas c,float l,float t,float r,float b,int who){
+            p.setColor(Color.argb(180,10,25,34)); c.drawRoundRect(l,t,r,b,14,14,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2); p.setColor(clothes[who]); c.drawRoundRect(l,t,r,b,14,14,p);
+            center(c,who==0?"XE KÉO":who==1?"PHI THIÊN":"HỘ LỰC",(l+r)/2,t+20,10,Color.WHITE);
+            center(c,"Lv "+skillLevels[who],(l+r)/2,t+39,10,Color.YELLOW);
+        }
+
         void drawSkillFX(Canvas c,int w,int h){
-            int who=selected;
-            float remain=Math.max(0,skillFxUntil-System.currentTimeMillis());
-            float alpha=Math.min(1f,remain/900f);
-            if(who==0){
-                float x=-190+(w*.45f)*(1-alpha);
-                p.setColor(Color.rgb(58,131,58));c.drawRoundRect(x,h*.55f,x+185,h*.65f,18,18,p);
-                p.setColor(Color.rgb(78,155,65));c.drawRoundRect(x+64,h*.48f,x+124,h*.56f,8,8,p);
-                p.setColor(Color.DKGRAY);c.drawCircle(x+35,h*.68f,28,p);c.drawCircle(x+150,h*.68f,19,p);
-                p.setColor(Color.CYAN);p.setStrokeWidth(8);c.drawLine(x+10,h*.56f,w*.72f,h*.52f,p);
-                center(c,"XE KÉO",w*.51f,h*.35f,30,Color.WHITE);
-            }else if(who==1){
-                p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(85,70,140,255));c.drawCircle(w*.49f,h*.42f,150,p);
-                p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(10);p.setColor(Color.CYAN);
-                for(int i=0;i<5;i++)c.drawCircle(w*.49f,h*.43f,45+i*28,p);
-                p.setColor(Color.WHITE);p.setStrokeWidth(5);c.drawLine(w*.45f,h*.55f,w*.52f,h*.15f,p);
-                p.setStyle(Paint.Style.FILL);center(c,"PHI THIÊN VÔ CỰC",w*.50f,h*.17f,28,Color.WHITE);
+            long now=System.currentTimeMillis();
+            float remain=Math.max(0,skillFxUntil-now);
+            float alpha=Math.min(1f,remain/700f);
+            float cx=w*.70f, cy=h*.49f;
+
+            if(selected==0){
+                // cart-pull effect: multiple bright speed lines converging on the fish
+                p.setColor(Color.argb((int)(210*alpha),246,205,61));
+                for(int i=0;i<7;i++){
+                    float yy=cy-105+i*35;
+                    c.drawRoundRect(w*.08f,yy,w*.63f,yy+7,5,5,p);
+                }
+                p.setColor(Color.rgb(69,145,70));
+                c.drawRoundRect(w*.13f,h*.51f,w*.38f,h*.62f,18,18,p);
+                p.setColor(Color.rgb(61,61,61)); c.drawCircle(w*.18f,h*.64f,22,p); c.drawCircle(w*.34f,h*.64f,22,p);
+                center(c,"XE KÉO!",w*.55f,h*.28f,32,Color.WHITE);
+            }else if(selected==1){
+                // explosive sky/energy effect
+                p.setColor(Color.argb((int)(145*alpha),255,230,85)); c.drawCircle(cx,cy,135,p);
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(12); p.setColor(Color.rgb(255,247,159));
+                for(int i=0;i<6;i++) c.drawCircle(cx,cy,45+i*24,p);
+                p.setStrokeWidth(6); p.setColor(Color.WHITE);
+                for(int i=0;i<12;i++){
+                    double a=i*Math.PI/6.0;
+                    c.drawLine(cx+(float)Math.cos(a)*52,cy+(float)Math.sin(a)*52,
+                               cx+(float)Math.cos(a)*180,cy+(float)Math.sin(a)*180,p);
+                }
+                p.setStyle(Paint.Style.FILL);
+                center(c,"PHI THIÊN VÔ CỰC!",w*.57f,h*.20f,27,Color.WHITE);
             }else{
-                p.setColor(Color.argb(90,80,175,255));c.drawCircle(w*.49f,h*.44f,155,p);
-                p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(12);p.setColor(Color.rgb(120,225,255));c.drawCircle(w*.49f,h*.44f,85,p);c.drawCircle(w*.49f,h*.44f,120,p);
-                p.setStyle(Paint.Style.FILL);center(c,"HỘ LỰC",w*.49f,h*.18f,30,Color.WHITE);
+                // protective force field
+                p.setColor(Color.argb((int)(120*alpha),80,200,255)); c.drawCircle(cx,cy,145,p);
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(10); p.setColor(Color.rgb(170,240,255));
+                c.drawCircle(cx,cy,90,p); c.drawCircle(cx,cy,120,p); c.drawCircle(cx,cy,148,p);
+                p.setStyle(Paint.Style.FILL);
+                center(c,"HỘ LỰC!",w*.58f,h*.21f,30,Color.WHITE);
             }
             p.setStyle(Paint.Style.FILL);
         }
