@@ -42,8 +42,9 @@ public class MainActivity extends Activity {
         final int[] charUpgradeCost={700,900,650};
         float[] playerX={.27f,.39f,.51f};
         float playerY=.77f;
-        int movingWho=-1;
-        float touchStartX=0,touchStartY=0;
+        boolean joystickActive=false;
+        float joystickKnobX=0,joystickKnobY=0;
+        final float JOY_R=58f;
         final int[] clothes={Color.rgb(76,155,91),Color.rgb(145,75,178),Color.rgb(61,112,167)};
 
         final String[] rodNames={"Cần Tre","Cần Sắt","Cần Thép","Cần Vàng","Cần Thần"};
@@ -265,9 +266,15 @@ public class MainActivity extends Activity {
             txt(c,"Căng dây",w-155,h*.45f,11,Color.WHITE);
 
             txt(c,toast,24,h-108,12,Color.WHITE);
-            // movement controls
-            button(c,20,h-150,100,h-100,"←",false);
-            button(c,110,h-150,190,h-100,"→",false);
+            // virtual joystick: drag the knob to move the selected character
+            float jx=95, jy=h-170;
+            p.setColor(Color.argb(80,0,0,0)); c.drawCircle(jx+4,jy+5,JOY_R+8,p);
+            p.setColor(Color.argb(175,20,28,34)); c.drawCircle(jx,jy,JOY_R+5,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.argb(210,220,235,240)); c.drawCircle(jx,jy,JOY_R,p);
+            p.setStyle(Paint.Style.FILL);
+            float kx=joystickActive?joystickKnobX:jx, ky=joystickActive?joystickKnobY:jy;
+            p.setColor(Color.argb(220,245,187,50)); c.drawCircle(kx,ky,27,p);
+            center(c,"JOYSTICK",jx,jy+82,10,Color.WHITE);
             if(skillFX && System.currentTimeMillis()<skillFxUntil) drawSkillFX(c,w,h);
             else skillFX=false;
 
@@ -316,8 +323,29 @@ public class MainActivity extends Activity {
         }
 
         @Override public boolean onTouchEvent(MotionEvent e){
-            if(e.getAction()!=MotionEvent.ACTION_UP)return true;
             float x=e.getX(),y=e.getY();int w=getWidth(),h=getHeight();
+            if(screen==FISHING){
+                float jx=95, jy=h-170;
+                if(e.getAction()==MotionEvent.ACTION_DOWN || e.getAction()==MotionEvent.ACTION_MOVE){
+                    float dx=x-jx, dy=y-jy;
+                    if(joystickActive || (dx*dx+dy*dy)<=((JOY_R+28)*(JOY_R+28))){
+                        joystickActive=true;
+                        float len=(float)Math.hypot(dx,dy);
+                        if(len>JOY_R){dx=dx*JOY_R/len;dy=dy*JOY_R/len;}
+                        joystickKnobX=jx+dx; joystickKnobY=jy+dy;
+                        float dir=dx/JOY_R;
+                        if(Math.abs(dir)>.08f){
+                            playerX[selected]=Math.max(.12f,Math.min(.62f,playerX[selected]+dir*.0065f));
+                            toast=names[selected]+" di chuyển "+(dir<0?"sang trái":"sang phải");
+                        }
+                        invalidate(); return true;
+                    }
+                }
+                if(e.getAction()==MotionEvent.ACTION_UP){
+                    joystickActive=false; joystickKnobX=jx; joystickKnobY=jy; invalidate();
+                }
+            }
+            if(e.getAction()!=MotionEvent.ACTION_UP)return true;
 
             if(screen==LOBBY){
                 if(y>h*.53f&&y<h*.66f){startFishing();return true;}
@@ -370,11 +398,6 @@ public class MainActivity extends Activity {
                     }
                 }
             }else if(screen==FISHING){
-                // Touch-drag also moves the currently selected fisherman.
-                if(y>h-170 && x<210){
-                    if(x<105) moveGroup(-.025f); else moveGroup(.025f);
-                    invalidate(); return true;
-                }
                 float cx=w-95,cy=h-65;
                 if(Math.hypot(x-cx,y-cy)<82){if(!fishHooked){fishHooked=true;toast="Cá cắn! 3 người cùng kéo!";}else pullTogether();invalidate();return true;}
                 for(int i=0;i<3;i++){
@@ -395,10 +418,6 @@ public class MainActivity extends Activity {
             toast="Cả Sở Tâm, Bá Thường, Lão Ngô cùng thả câu!";
         }
 
-        void moveGroup(float delta){
-            playerX[selected]=Math.max(.12f,Math.min(.62f,playerX[selected]+delta));
-            toast=names[selected]+" di chuyển "+(delta<0?"sang trái":"sang phải");
-        }
 
         void pullTogether(){
             int power=rodPower[rod]/4+70+95+80+skillLevels[0]*10+skillLevels[1]*10+skillLevels[2]*10;
