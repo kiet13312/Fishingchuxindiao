@@ -17,7 +17,9 @@ public class MainActivity extends Activity {
  static class FishingView extends View {
   Paint p=new Paint(3); Random r=new Random();
   int character=0,money=1000,weight=0,energy=100,rod=0,rodPower=100;
-  boolean fishing=false,hooked=false,skillReady=true;
+  boolean fishing=false,hooked=false;
+  long skillCooldownEnd=0;
+  final long SKILL_COOLDOWN=8000;
   String caughtFish="",message="Sẵn sàng câu cá";
   ArrayList<Fish> bag=new ArrayList<>();
   String[] names={"Sở Tâm","Bá Thường","Lão Ngô"};
@@ -29,6 +31,9 @@ public class MainActivity extends Activity {
   String[] fishNames={"Cá rô","Cá chép","Cá trắm","Cá lóc","Cá mè","Cá nheo","Cá hồng","Cá basa","Cá kiếm","Cá khổng lồ","Cá vạn cân","Cá thần","Cá cực hiếm"};
 
   FishingView(Context c){super(c);p.setTypeface(Typeface.DEFAULT_BOLD);}
+
+  boolean skillReady(){return System.currentTimeMillis()>=skillCooldownEnd;}
+  long cooldownLeft(){return Math.max(0,skillCooldownEnd-System.currentTimeMillis());}
 
   protected void onDraw(Canvas c){
    int w=getWidth(),h=getHeight();
@@ -72,9 +77,13 @@ public class MainActivity extends Activity {
    c.drawText(rod<rodNames.length-1?"MUA CẦN":"CẦN TỐI ĐA",w-365,h-60,p);
 
    if(character==1){
-    p.setColor(skillReady?Color.rgb(175,70,220):Color.GRAY);
+    boolean ready=skillReady();
+    p.setColor(ready?Color.rgb(175,70,220):Color.GRAY);
     c.drawRoundRect(w-405,h-140,w-205,h-94,14,14,p);
-    p.setColor(Color.WHITE);p.setTextSize(13);c.drawText("PHI THIÊN VÔ CỰC",w-390,h-112,p);
+    p.setColor(Color.WHITE);p.setTextSize(12);
+    String skillText=ready?"PHI THIÊN VÔ CỰC":("HỒI "+((cooldownLeft()+999)/1000)+"s");
+    c.drawText(skillText,w-390,h-112,p);
+    postInvalidateDelayed(100);
    }
   }
 
@@ -84,16 +93,11 @@ public class MainActivity extends Activity {
 
    if(y>=100&&y<=170){
     int i=(int)((x-20)/190);
-    if(i>=0&&i<3){character=i;skillReady=true;message="Đã chọn "+names[i];invalidate();return true;}
+    if(i>=0&&i<3){character=i;message="Đã chọn "+names[i];invalidate();return true;}
    }
 
-   if(character==1&&x>=w-420&&x<=w-195&&y>=h-150&&y<=h-88&&skillReady){
-    skillReady=false;
-    if(fishing){weight+=50;hooked=true;message="Phi Thiên Vô Cực! Lực kéo tăng mạnh!";}
-    else message="Phi Thiên Vô Cực sẵn sàng!";
-    invalidate();
-    new Handler().postDelayed(()->{skillReady=true;invalidate();},8000);
-    return true;
+   if(character==1&&x>=w-420&&x<=w-195&&y>=h-150&&y<=h-88){
+    useSkill();return true;
    }
 
    if(x>=w-200&&y>=h-150&&y<=h-90){
@@ -104,10 +108,19 @@ public class MainActivity extends Activity {
    }
 
    if(x>=w-200&&y>=h-90&&y<=h-38){sellFish();invalidate();return true;}
-
    if(x>=w-390&&x<=w-195&&y>=h-90&&y<=h-38){buyRod();invalidate();return true;}
-
    return true;
+  }
+
+  void useSkill(){
+   if(!skillReady()){
+    message="Phi Thiên Vô Cực đang hồi: "+((cooldownLeft()+999)/1000)+" giây";
+    invalidate();return;
+   }
+   skillCooldownEnd=System.currentTimeMillis()+SKILL_COOLDOWN;
+   if(fishing){weight+=50;hooked=true;message="Phi Thiên Vô Cực! Lực kéo tăng mạnh!";}
+   else message="Phi Thiên Vô Cực đã kích hoạt!";
+   invalidate();
   }
 
   void startFishing(){
@@ -133,16 +146,15 @@ public class MainActivity extends Activity {
 
   void catchFish(){
    if(!hooked)return;
-   int max=rodPower+power[character]*2+(character==1&&!skillReady?100:0);
+   int max=rodPower+power[character]*2+(character==1&&!skillReady()?100:0);
    if(weight>max){
     message="Cá quá nặng! Cần câu không chịu nổi và cá trốn mất!";
     fishing=false;hooked=false;weight=0;return;
    }
-   if(character==1&&!skillReady)weight+=50;
+   if(character==1&&!skillReady())weight+=50;
    bag.add(new Fish(caughtFish,weight));
    message="Bắt được "+caughtFish+" nặng "+weight+" kg!";
    fishing=false;hooked=false;energy=Math.min(100,energy+10);
-   if(character==1&&!skillReady)message+=" Phi Thiên Vô Cực đã cộng lực!";
   }
 
   void buyRod(){
