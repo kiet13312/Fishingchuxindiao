@@ -240,139 +240,156 @@ public class MainActivity extends Activity {
 
         void drawFishing(Canvas c,int w,int h){
             long now=System.currentTimeMillis();
-            float pulse=(float)((Math.sin(now/90.0)+1)/2.0);
-            float pull=(fishHooked?0.035f:0.012f)+(tension/100f)*0.025f;
+            float pulse=(float)((Math.sin(now/120.0)+1)/2.0);
 
-            // Bright outdoor lake scene, matching the composition/style of the supplied reference
-            // without copying its original frames or artwork.
-            LinearGradient sky=new LinearGradient(0,0,0,h*.34f,
-                    Color.rgb(78,177,239),Color.rgb(190,232,255),Shader.TileMode.CLAMP);
-            p.setShader(sky); c.drawRect(0,0,w,h*.34f,p); p.setShader(null);
+            // Builda-like gameplay composition based on current public gameplay screenshots:
+            // water to the left, a pale bank to the right, compact HUD, side menu,
+            // three teammates and a large fishing action control.
+            p.setShader(new LinearGradient(0,0,w,0,
+                    Color.rgb(17,121,178),Color.rgb(54,174,201),Shader.TileMode.CLAMP));
+            c.drawRect(0,0,w*.70f,h,p); p.setShader(null);
 
-            // distant hills
-            p.setColor(Color.rgb(74,160,87));
-            Path hill=new Path();
-            hill.moveTo(0,h*.30f); hill.cubicTo(w*.12f,h*.18f,w*.23f,h*.27f,w*.36f,h*.20f);
-            hill.cubicTo(w*.49f,h*.13f,w*.63f,h*.27f,w*.78f,h*.17f);
-            hill.cubicTo(w*.87f,h*.13f,w*.95f,h*.21f,w,h*.16f);
-            hill.lineTo(w,h*.39f); hill.lineTo(0,h*.39f); hill.close(); c.drawPath(hill,p);
+            p.setColor(Color.rgb(236,233,217)); c.drawRect(w*.66f,0,w,h,p);
+            p.setColor(Color.rgb(104,171,72)); c.drawRect(w*.66f,0,w,h*.12f,p);
+            p.setColor(Color.rgb(73,131,58)); c.drawRect(w*.66f,h*.12f,w,h*.15f,p);
 
-            // water
-            LinearGradient water=new LinearGradient(0,h*.31f,0,h*.88f,
-                    Color.rgb(36,170,210),Color.rgb(29,105,170),Shader.TileMode.CLAMP);
-            p.setShader(water); c.drawRect(0,h*.31f,w,h*.88f,p); p.setShader(null);
+            // Bank texture.
+            p.setColor(Color.rgb(203,198,177));
+            for(int i=0;i<45;i++){
+                float xx=w*.67f+(i*59)%Math.max(1,(int)(w*.32f));
+                float yy=h*.16f+(i*41)%Math.max(1,(int)(h*.80f));
+                c.drawCircle(xx,yy,2+(i%4),p);
+            }
+            p.setColor(Color.argb(45,55,50,45));
+            for(int i=0;i<10;i++) c.drawRect(w*.67f,h*.16f+i*h*.082f,w,h*.18f+i*h*.082f,p);
 
-            p.setColor(Color.argb(105,255,255,255));
-            for(int i=0;i<17;i++){
-                float yy=h*.36f+i*h*.026f;
-                float sway=(float)Math.sin(now/700.0+i)*16;
-                c.drawLine(w*.02f+sway,yy,w*.28f+sway+35,yy+5,p);
-                c.drawLine(w*.46f-sway,yy+9,w*.82f-sway,yy+3,p);
-                c.drawLine(w*.77f+sway,yy+17,w*.98f+sway,yy+11,p);
+            // Water highlights.
+            p.setColor(Color.argb(120,255,255,255));
+            for(int i=0;i<26;i++){
+                float yy=h*.10f+(i*43)%Math.max(1,(int)(h*.62f));
+                float xx=(i*79)%Math.max(1,(int)(w*.64f));
+                c.drawRoundRect(xx,yy,Math.min(w*.63f,xx+35+(i%5)*20),yy+3,3,3,p);
             }
 
-            // grassy bank / rocks
-            p.setColor(Color.rgb(93,181,67)); c.drawRect(0,h*.78f,w,h,p);
-            p.setColor(Color.rgb(145,199,92));
-            for(int i=0;i<32;i++) c.drawCircle((i*73)%Math.max(1,w),h*.77f+(i%4)*8,8+(i%4)*3,p);
-            p.setColor(Color.rgb(123,105,80));
-            for(int i=0;i<20;i++) c.drawOval((i*97)%Math.max(1,w),h*.80f+(i%3)*18,(i*97)%Math.max(1,w)+26,h*.80f+(i%3)*18+11,p);
+            // Top status HUD.
+            panel(c,10,10,205,105,Color.argb(185,18,24,30));
+            txt(c,"gameone",26,31,17,Color.WHITE);
+            txt(c,"Lv "+levels[selected],26,50,13,Color.WHITE);
+            p.setColor(Color.rgb(25,37,46)); c.drawRoundRect(67,39,194,53,7,7,p);
+            p.setColor(Color.rgb(45,167,235));
+            c.drawRoundRect(67,39,67+127*Math.min(1f,.45f+(levels[selected]%10)/20f),53,7,7,p);
+            txt(c,"Thể lực "+(300+skillLevels[selected]*50)+"/"+(300+skillLevels[selected]*50),26,70,12,Color.WHITE);
+            txt(c,"Tổng trọng tải cá: "+fishWeights[fishIdx]+"KG",26,88,11,Color.WHITE);
+            txt(c,"Bảng xếp hạng: -1",26,101,9,Color.LTGRAY);
 
-            // Small top labels; keep the gameplay scene dominant.
-            panel(c,18,16,242,69,Color.argb(150,8,20,29));
-            txt(c,"CÂU CÁ VẠN CÂN",31,41,17,Color.WHITE);
-            txt(c,"Màn "+(map+1)+"   •   "+fishNames[fishIdx],31,59,11,Color.YELLOW);
+            // Mystery-shop block.
+            p.setColor(Color.rgb(236,194,50)); c.drawRoundRect(w*.425f,16,w*.495f,62,10,10,p);
+            center(c,"SHOP",w*.46f,45,15,Color.BLACK);
+            center(c,"Cửa hàng bí ẩn",w*.46f,78,12,Color.WHITE);
+            center(c,"02:22",w*.46f,94,11,Color.YELLOW);
+            txt(c,"$ "+money,w-112,35,20,Color.YELLOW);
 
-            panel(c,w-272,16,w-18,74,Color.argb(155,8,20,29));
-            txt(c,"CÁ "+fishNames[fishIdx],w-250,38,14,Color.WHITE);
-            p.setColor(Color.argb(120,0,0,0)); c.drawRoundRect(w-250,48,w-42,63,8,8,p);
-            float hp=fishMax==0?1:(float)Math.max(0,fishHp)/fishMax;
-            p.setColor(Color.rgb(242,68,68)); c.drawRoundRect(w-250,48,w-250+208*hp,63,8,8,p);
-            txt(c,Math.max(0,fishHp)+" / "+fishMax,w-180,59,9,Color.WHITE);
+            // Reference-style left menu.
+            drawSideMenu(c,w,h);
 
-            // Three characters physically fish together.
-            float base=h*.765f;
+            // Three characters together, all casting toward the same fishing area.
+            float[] charPos={.76f,.83f,.90f};
+            float base=h*.72f;
             for(int i=0;i<3;i++){
-                float px=w*playerX[i];
-                float lean=(float)Math.sin(now/160.0+i*.8)*2.2f + (fishHooked?(-4-i*2):0);
-                drawHero(c,px,base,i,1.20f,lean,pull);
-                center(c,names[i],px,base+45,11,Color.WHITE);
+                float px=w*charPos[i];
+                float lean=(float)Math.sin(now/175.0+i)*2.2f-(fishHooked?(4+i):0);
+                float pull=fishHooked?.025f:.005f;
+                drawHero(c,px,base,i,.96f,lean,pull);
 
-                float rodTipX=w*(.72f+i*.055f);
-                float rodTipY=h*(.40f+i*.035f)+(float)Math.sin(now/180.0+i)*8;
                 p.setStyle(Paint.Style.STROKE);
                 p.setStrokeCap(Paint.Cap.ROUND);
-                p.setStrokeWidth(4.3f-i*.25f);
-                p.setColor(Color.rgb(63,43,30));
-                c.drawLine(px+25,base-72,rodTipX,rodTipY,p);
-                p.setStrokeWidth(1.7f);
+                p.setStrokeWidth(3.2f);
+                p.setColor(Color.rgb(48,42,38));
+                float tipX=w*(.41f+i*.035f),tipY=h*(.57f-i*.045f);
+                c.drawLine(px-8,base-55,tipX,tipY,p);
+
+                p.setStrokeWidth(1.4f);
                 p.setColor(Color.WHITE);
                 Path line=new Path();
-                line.moveTo(rodTipX,rodTipY);
-                line.quadTo((rodTipX+w*.80f)/2,rodTipY+h*.05f,(w*.81f),h*.56f+i*5);
-                line.quadTo(w*.84f+(float)Math.sin(now/240.0+i)*18,h*.54f,
-                        w*.86f,h*.57f);
+                line.moveTo(tipX,tipY);
+                line.quadTo(tipX-w*.08f,tipY+h*.04f,w*.30f+i*w*.025f,h*.50f+i*h*.02f);
+                line.lineTo(w*.16f+i*w*.03f,h*.58f+i*h*.018f);
                 c.drawPath(line,p);
                 p.setStyle(Paint.Style.FILL);
             }
 
-            // Large animated fish/monster under the lines.
-            float fx=w*(.825f+(float)Math.sin(now/330.0)*.025f);
-            float fy=h*(.575f+(float)Math.sin(now/210.0)*.045f);
-            if(fishHooked) fx-=w*.018f;
-            drawActionFish(c,fx,fy,1.0f+pulse*.05f,fishHooked);
+            // Dialogue/action bubble.
+            panel(c,w*.53f,h*.22f,w*.79f,h*.315f,Color.WHITE);
+            center(c,fishHooked?"Căng rồi! Kéo cá đi!":"Bằng, đi câu cá hay không?",
+                    w*.66f,h*.277f,15,Color.rgb(35,35,35));
 
-            // Water splash where the fish fights.
+            // Fighting fish in the water.
+            float fx=w*(.26f+(float)Math.sin(now/330.0)*.035f);
+            float fy=h*(.54f+(float)Math.sin(now/220.0)*.035f);
+            drawActionFish(c,fx,fy,.80f+pulse*.05f,fishHooked);
             if(fishHooked){
-                p.setColor(Color.argb(145,255,255,255));
-                for(int i=0;i<12;i++){
-                    double a=i*Math.PI/6.0 + now/5000.0;
-                    float rr=28+((i%3)*14)+(float)(pulse*12);
-                    c.drawCircle(fx+(float)Math.cos(a)*rr,fy+(float)Math.sin(a)*rr*.45f,3+(i%3),p);
+                p.setColor(Color.argb(135,255,255,255));
+                for(int i=0;i<16;i++){
+                    float a=i*(float)Math.PI/8f+now/5000f;
+                    float rr=20+22*pulse+(i%3)*9;
+                    c.drawCircle(fx+(float)Math.cos(a)*rr,fy+(float)Math.sin(a)*rr*.55f,2+(i%3),p);
                 }
-                center(c,"KÉO!!!",w*.80f,h*.34f,28,Color.WHITE);
+                center(c,"KÉO!",w*.30f,h*.39f,28,Color.WHITE);
             }
 
-            // Bottom control strip.
-            panel(c,18,h-92,w-358,h-14,Color.argb(150,7,18,26));
-            for(int i=0;i<3;i++) drawSkillButton(c,34+i*112,h-79,134+i*112,h-25,i);
+            // Line length + state.
+            panel(c,16,h-82,225,h-18,Color.argb(145,0,0,0));
+            txt(c,"Độ dài dây: "+(fishHooked?(120+(int)(pulse*80)):0)+"m",30,h-53,14,Color.WHITE);
+            txt(c,fishHooked?"CÁ ĐANG CẮN!":"Nhấn THẢ LƯỚI để bắt đầu",30,h-32,11,Color.YELLOW);
 
-            // Virtual joystick remains available, but visually blends into the scene.
-            float jx=94,jy=h-151;
-            p.setColor(Color.argb(95,0,0,0)); c.drawCircle(jx,jy,62,p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.argb(220,255,255,255)); c.drawCircle(jx,jy,55,p);
+            // Joystick.
+            float jx=96,jy=h-150;
+            p.setColor(Color.argb(75,0,0,0)); c.drawCircle(jx,jy,61,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3); p.setColor(Color.argb(210,232,245,250)); c.drawCircle(jx,jy,54,p);
             p.setStyle(Paint.Style.FILL);
-            float kx=joystickActive?joystickKnobX:jx, ky=joystickActive?joystickKnobY:jy;
-            p.setColor(Color.argb(220,255,214,62)); c.drawCircle(kx,ky,25,p);
+            float kx=joystickActive?joystickKnobX:jx,ky=joystickActive?joystickKnobY:jy;
+            p.setColor(Color.argb(220,245,195,58)); c.drawCircle(kx,ky,25,p);
 
-            // Main pull button.
-            float bx=w-93,by=h-61;
-            p.setColor(Color.argb(105,0,0,0)); c.drawCircle(bx+3,by+5,62,p);
-            p.setColor(Color.rgb(18,80,115)); c.drawCircle(bx,by,58,p);
-            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(5); p.setColor(Color.WHITE); c.drawCircle(bx,by,52,p);
+            // Skill controls.
+            for(int i=0;i<3;i++){
+                float l=w*.48f+i*w*.095f;
+                drawSkillButton(c,l,h-67,l+w*.085f,h-17,i);
+            }
+
+            // Large main fishing control.
+            float bx=w*.90f,by=h*.68f;
+            p.setColor(Color.argb(90,0,0,0)); c.drawCircle(bx+4,by+5,55,p);
+            p.setColor(Color.rgb(38,75,82)); c.drawCircle(bx,by,52,p);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(4); p.setColor(Color.WHITE); c.drawCircle(bx,by,46,p);
             p.setStyle(Paint.Style.FILL);
-            center(c,fishHooked?"KÉO":"THẢ CÂU",bx,by+5,16,Color.WHITE);
+            center(c,fishHooked?"CO LẠI DÂY":"THẢ LƯỚI",bx,by+5,12,Color.WHITE);
 
-            // Tension meter, deliberately high-contrast like an action HUD.
-            float barL=w*.57f,barR=w*.75f,barT=16,barB=29;
-            p.setColor(Color.argb(120,0,0,0)); c.drawRoundRect(barL,barT,barR,barB,7,7,p);
-            p.setColor(tension>78?Color.RED:Color.rgb(249,207,58));
-            c.drawRoundRect(barL,barT,barL+(barR-barL)*(tension/100f),barB,7,7,p);
-            center(c,"LỰC DÂY "+((int)tension)+"%",(barL+barR)/2,barB+17,11,Color.WHITE);
+            // High-contrast tension bar.
+            p.setColor(Color.argb(120,0,0,0)); c.drawRoundRect(w*.33f,h*.90f,w*.62f,h*.94f,7,7,p);
+            p.setColor(tension>78?Color.RED:Color.rgb(241,192,48));
+            c.drawRoundRect(w*.33f,h*.90f,w*.33f+w*.29f*(tension/100f),h*.94f,7,7,p);
+            center(c,"CĂNG DÂY "+((int)tension)+"%",w*.475f,h*.925f,10,Color.WHITE);
 
             if(skillFX && now<skillFxUntil) drawSkillFX(c,w,h);
             else skillFX=false;
 
-            // Fish animation / tension simulation.
-            fishX=fx/w; fishY=fy/h;
-            fishX+=fishV*.70f;
-            if(fishX<.70f||fishX>.90f)fishV=-fishV;
             if(fishHooked){
                 tension+=.08f;
                 if(tension>100)tension=100;
-            }else{
-                tension=Math.max(12,tension-.025f);
+            }else tension=Math.max(12,tension-.03f);
+        }
+
+        void drawSideMenu(Canvas c,int w,int h){
+            String[] menu={"Người câu","Cách đánh cá","Cây câu","Quán cá"};
+            for(int i=0;i<4;i++){
+                float l=8,t=125+i*62,r=158,b=t+50;
+                p.setColor(Color.argb(220,248,244,232)); c.drawRoundRect(l,t,r,b,7,7,p);
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2); p.setColor(Color.rgb(82,74,68)); c.drawRoundRect(l,t,r,b,7,7,p); p.setStyle(Paint.Style.FILL);
+                p.setColor(Color.rgb(90,165,203)); c.drawRoundRect(l+6,t+6,l+42,b-6,6,6,p);
+                center(c,"•",l+24,(t+b)/2+6,22,Color.WHITE);
+                txt(c,menu[i],l+48,(t+b)/2+6,14,Color.rgb(62,55,51));
             }
+            txt(c,"Đã tích lũy vàng: "+money,8,h-100,11,Color.YELLOW);
         }
 
         void drawHero(Canvas c,float x,float y,int who,float sc,float lean,float pull){
@@ -495,7 +512,7 @@ public class MainActivity extends Activity {
         @Override public boolean onTouchEvent(MotionEvent e){
             float x=e.getX(),y=e.getY();int w=getWidth(),h=getHeight();
             if(screen==FISHING){
-                float jx=95, jy=h-170;
+                float jx=96,jy=h-150;
                 int action=e.getActionMasked();
 
                 if(action==MotionEvent.ACTION_CANCEL){
@@ -511,17 +528,17 @@ public class MainActivity extends Activity {
                 }
 
                 if(action==MotionEvent.ACTION_DOWN || action==MotionEvent.ACTION_MOVE){
-                    float dx=x-jx, dy=y-jy;
-                    if(joystickTouch || (dx*dx+dy*dy)<=((JOY_R+28)*(JOY_R+28))){
+                    float dx=x-jx,dy=y-jy;
+                    if(joystickTouch || (dx*dx+dy*dy)<=((JOY_R+24)*(JOY_R+24))){
                         joystickTouch=true;
                         joystickActive=true;
                         float len=(float)Math.hypot(dx,dy);
                         if(len>JOY_R){dx=dx*JOY_R/len;dy=dy*JOY_R/len;}
-                        joystickKnobX=jx+dx; joystickKnobY=jy+dy;
+                        joystickKnobX=jx+dx;joystickKnobY=jy+dy;
                         float dir=dx/JOY_R;
                         if(Math.abs(dir)>.08f){
-                            playerX[selected]=Math.max(.12f,Math.min(.62f,playerX[selected]+dir*.0065f));
-                            toast=names[selected]+" di chuyển "+(dir<0?"sang trái":"sang phải");
+                            playerX[selected]=Math.max(.70f,Math.min(.95f,playerX[selected]+dir*.004f));
+                            toast=names[selected]+" di chuyển";
                         }
                         invalidate();
                         return true;
@@ -585,11 +602,24 @@ public class MainActivity extends Activity {
                     }
                 }
             }else if(screen==FISHING){
-                float cx=w-95,cy=h-65;
-                if(Math.hypot(x-cx,y-cy)<82){if(!fishHooked){fishHooked=true;toast="Cá cắn! 3 người cùng kéo!";}else pullTogether();invalidate();return true;}
+                float cx=w*.90f,cy=h*.68f;
+                if(Math.hypot(x-cx,y-cy)<76){
+                    if(!fishHooked){fishHooked=true;toast="Cá cắn! 3 người cùng kéo!";}
+                    else pullTogether();
+                    invalidate();return true;
+                }
                 for(int i=0;i<3;i++){
-                    float l=28+i*120;
-                    if(x>=l&&x<=l+110&&y>=h-96&&y<h-10){selected=i;useSkill(i);invalidate();return true;}
+                    float l=w*.48f+i*w*.095f;
+                    if(x>=l&&x<=l+w*.085f&&y>=h-72&&y<=h-10){
+                        selected=i;useSkill(i);invalidate();return true;
+                    }
+                }
+                if(x<170){
+                    if(y>=125&&y<188)screen=CHAR;
+                    else if(y>=188&&y<250)screen=SKILL_MENU;
+                    else if(y>=250&&y<312)screen=SHOP;
+                    else if(y>=312&&y<374)screen=SHOP;
+                    invalidate();return true;
                 }
             }else if(screen==RESULT){
                 if(y>h*.53f&&y<h*.66f){startFishing();return true;}
