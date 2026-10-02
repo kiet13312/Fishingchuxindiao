@@ -217,8 +217,27 @@ public class MainActivity extends Activity {
         }
 
         void drawSideMenu(Canvas c,int w,int h){String[] m={"Người câu","Cách đánh cá","Cây câu","Quán cá"};for(int i=0;i<4;i++){float l=7,t=126+i*61,r=158,b=t+49;panel(c,l,t,r,b,Color.argb(220,247,242,226));outline(c,l,t,r,b,Color.rgb(82,74,66),2);p.setColor(Color.rgb(82,157,196));c.drawRoundRect(l+5,t+5,l+40,b-5,6,6,p);center(c,"•",l+22,t+34,21,Color.WHITE);text(c,m[i],l+47,t+31,13,Color.rgb(60,53,49));}}
-        void drawHero(Canvas c,float x,float y,int who,float s,float lean){p.setColor(Color.argb(75,0,0,0));c.drawOval(x-31,y+45,x+34,y+60,p);p.setColor(Color.rgb(57,49,48));c.drawRoundRect(x-15,y+5,x-3,y+45,4,4,p);c.drawRoundRect(x+3,y+5,x+15,y+45,4,4,p);p.setColor(body[who]);c.drawRoundRect(x-24+lean,y-49,x+24+lean,y+8,10,10,p);p.setColor(Color.rgb(245,208,165));c.drawCircle(x+lean,y-70,18,p);p.setColor(who==2?Color.rgb(155,145,137):Color.rgb(38,33,42));c.drawOval(x-19+lean,y-88,x+19+lean,y-67,p);if(who==2)c.drawOval(x-18+lean,y-88,x+17+lean,y-54,p);p.setColor(Color.DKGRAY);c.drawCircle(x-6+lean,y-70,2,p);c.drawCircle(x+6+lean,y-70,2,p);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(7);p.setColor(Color.rgb(245,208,165));float ay=y-23-(phase==FIGHT?9:0);c.drawLine(x-14+lean,y-18,x+8+lean,ay,p);c.drawLine(x+14+lean,y-18,x+12+lean,ay+4,p);}
-        void drawRodLine(Canvas c,float x,float y,int who,int w,int h){p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(3);p.setColor(Color.rgb(47,40,38));float tx=w*(.41f+who*.035f),ty=h*(.57f-who*.04f);c.drawLine(x-3,y-56,tx,ty,p);p.setStrokeWidth(1.2f);p.setColor(Color.WHITE);path.reset();path.moveTo(tx,ty);path.quadTo(w*.30f+who*w*.025f,h*.50f,w*.15f+who*w*.03f,h*.58f);c.drawPath(path,p);p.setStyle(Paint.Style.FILL);}
+        void drawHero(Canvas c,float x,float y,int who,float s,float lean){
+            p.setColor(Color.argb(75,0,0,0));c.drawOval(x-31,y+45,x+34,y+60,p);
+            p.setColor(Color.rgb(57,49,48));c.drawRoundRect(x-15,y+5,x-3,y+45,4,4,p);c.drawRoundRect(x+3,y+5,x+15,y+45,4,4,p);
+            p.setColor(body[who]);c.drawRoundRect(x-24+lean,y-49,x+24+lean,y+8,10,10,p);
+            p.setColor(Color.rgb(245,208,165));c.drawCircle(x+lean,y-70,18,p);
+            p.setColor(who==2?Color.rgb(155,145,137):Color.rgb(38,33,42));c.drawOval(x-19+lean,y-88,x+19+lean,y-67,p);if(who==2)c.drawOval(x-18+lean,y-88,x+17+lean,y-54,p);
+            p.setColor(Color.DKGRAY);c.drawCircle(x-6+lean,y-70,2,p);c.drawCircle(x+6+lean,y-70,2,p);
+            p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(7);p.setColor(Color.rgb(245,208,165));
+            float handX=x+(facingLeft[who]?-11:15)+lean,handY=y-30;
+            c.drawLine(x-14+lean,y-18,handX,handY,p);c.drawLine(x+14+lean,y-18,handX+2,handY+3,p);
+            p.setStrokeWidth(5);p.setColor(Color.rgb(90,57,35));c.drawLine(handX,handY,handX+(facingLeft[who]?-54:54),handY-28,p);
+        }
+        void drawRodLine(Canvas c,float x,float y,int who,float fx,float fy,float bend){
+            float handX=x+(facingLeft[who]?-11:15),handY=y-30;
+            float tipX=handX+(facingLeft[who]?-54:54),tipY=handY-28;
+            float bendX=(tipX+fx)/2f+(facingLeft[who]?-18:18)*bend;
+            float bendY=(tipY+fy)/2f+35f*bend;
+            p.setStyle(Paint.Style.STROKE);p.setStrokeCap(Paint.Cap.ROUND);p.setStrokeWidth(1.5f+2.5f*bend);p.setColor(Color.rgb(238,238,235));
+            path.reset();path.moveTo(tipX,tipY);path.quadTo(bendX,bendY,fx,fy);c.drawPath(path,p);
+            p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(242,197,54));c.drawCircle(fx,fy,4,p);
+        }
         void drawFish(Canvas c,float x,float y,float sc,boolean hooked){p.setColor(hooked?Color.rgb(104,67,165):Color.rgb(48,107,165));c.drawOval(x-78*sc,y-34*sc,x+72*sc,y+34*sc,p);path.reset();path.moveTo(x+60*sc,y);path.lineTo(x+116*sc,y-45*sc);path.lineTo(x+105*sc,y);path.lineTo(x+116*sc,y+45*sc);path.close();c.drawPath(path,p);p.setColor(Color.WHITE);c.drawCircle(x-46*sc,y-7*sc,10*sc,p);p.setColor(Color.BLACK);c.drawCircle(x-46*sc,y-7*sc,4*sc,p);p.setColor(Color.rgb(175,86,113));path.reset();path.moveTo(x-5*sc,y-23*sc);path.lineTo(x+28*sc,y-55*sc);path.lineTo(x+34*sc,y-16*sc);path.close();c.drawPath(path,p);}
         void drawSkill(Canvas c,float l,float t,float r,float b,int who){panel(c,l,t,r,b,Color.argb(190,11,23,31));outline(c,l,t,r,b,body[who],2);center(c,skillShort[who],(l+r)/2,t+21,10,Color.WHITE);center(c,"Lv "+skillLv[who],(l+r)/2,t+42,10,Color.YELLOW);if(cooldown[who]>0)center(c,(cooldown[who]/1000)+"s",(l+r)/2,t+61,9,Color.LTGRAY);}
         void drawToast(Canvas c,int w,int h,String s){float y=h*.75f;panel(c,w*.30f,y,w*.70f,y+43,Color.argb(215,17,24,29));center(c,s,w*.50f,y+27,13,Color.WHITE);}
@@ -330,7 +349,12 @@ public class MainActivity extends Activity {
             return true;
         }
 
-        void moveJoy(float x,float y){float dx=x-joyX,dy=y-joyY,len=(float)Math.hypot(dx,dy);if(len>JOY_R){dx*=JOY_R/len;dy*=JOY_R/len;}joyKnobX=joyX+dx;joyKnobY=joyY+dy;if(Math.abs(dx/JOY_R)>.08f){toast=chars[selected]+" di chuyển";toastUntil=System.currentTimeMillis()+700;}}
+        void moveJoy(float x,float y){float dx=x-joyX,dy=y-joyY,len=(float)Math.hypot(dx,dy);if(len>JOY_R){dx*=JOY_R/len;dy*=JOY_R/len;}joyKnobX=joyX+dx;joyKnobY=joyY+dy;
+            charX[selected]=Math.max(.69f,Math.min(.97f,charX[selected]+dx/getWidth()*.0032f));
+            charY[selected]=Math.max(.64f,Math.min(.80f,charY[selected]+dy/getHeight()*.0012f));
+            if(Math.abs(dx)>JOY_R*.08f)facingLeft[selected]=dx<0;
+            if(Math.abs(dx)+Math.abs(dy)>8){toast=chars[selected]+" di chuyển";toastUntil=System.currentTimeMillis()+700;}
+        }
         void resetJoystick(){joyX=94;joyY=Math.max(100,getHeight()-150);joyKnobX=joyX;joyKnobY=joyY;}
 
         void handleGearTap(float x,float y,int w,int h){
@@ -344,7 +368,7 @@ public class MainActivity extends Activity {
             for(int i=0;i<3;i++)if(x>=r-85&&x<=r-8&&y>=ys[i]+50&&y<=ys[i]+105){if(vals[i]>=max[i]&&!cl[i]){money+=reward[i];xp+=reward[i]/2;if(i==0)quest1Claim=true;else if(i==1)quest2Claim=true;else quest3Claim=true;level=Math.max(1,1+xp/500);toast="Nhận thưởng +$"+reward[i];tone(0);save();}else toast="Chưa hoàn thành hoặc đã nhận";invalidate();return;}if(y>h-70){screen=LOBBY;invalidate();}
         }
 
-        void startFishing(){resetJoystick();phase=READY;reelHeld=false;skillFx=false;screen=FISH;toast="Cả 3 câu thủ vào vị trí. Nhấn THẢ LƯỚI.";toastUntil=System.currentTimeMillis()+2200;invalidate();}
+        void startFishing(){resetJoystick();charX[0]=.76f;charX[1]=.84f;charX[2]=.92f;charY[0]=.74f;charY[1]=.74f;charY[2]=.74f;for(int i=0;i<3;i++)facingLeft[i]=true;phase=READY;reelHeld=false;skillFx=false;screen=FISH;toast="3 câu thủ vào vị trí • mỗi người một cần";toastUntil=System.currentTimeMillis()+2200;invalidate();}
         void toast(String s,long ms){toast=s;toastUntil=System.currentTimeMillis()+ms;}
         void tone(int kind){if(tone==null)return;try{tone.startTone(kind==0?ToneGenerator.TONE_PROP_BEEP:kind==1?ToneGenerator.TONE_PROP_ACK:kind==2?ToneGenerator.TONE_PROP_BEEP2:kind==3?ToneGenerator.TONE_PROP_PROMPT:ToneGenerator.TONE_PROP_NACK,120);}catch(Exception ignored){}}
         void drawPerson(Canvas c,float x,float y,int who,float s){p.setColor(Color.rgb(48,39,36));c.drawCircle(x,y-67*s,18*s,p);p.setColor(Color.rgb(244,211,172));c.drawCircle(x,y-64*s,16*s,p);p.setColor(body[who]);c.drawRoundRect(x-23*s,y-44*s,x+23*s,y+10*s,9*s,9*s,p);p.setColor(Color.rgb(54,51,54));c.drawRect(x-14*s,y+10*s,x-3*s,y+50*s,p);c.drawRect(x+3*s,y+10*s,x+14*s,y+50*s,p);p.setColor(Color.rgb(104,61,35));p.setStrokeWidth(5*s);c.drawLine(x+13*s,y-12*s,x+72*s,y-51*s,p);}
