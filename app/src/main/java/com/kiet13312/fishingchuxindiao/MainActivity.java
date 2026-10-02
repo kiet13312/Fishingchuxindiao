@@ -48,6 +48,15 @@ public class MainActivity extends Activity {
         final int[] upgradeCost={500,700,900};
         final int[] skillCost={350,500,450};
         final int[] cooldown={0,0,0};
+        final float[] charX={.76f,.84f,.92f}, charY={.74f,.74f,.74f};
+        final float[] lineDistance={0,0,0}, lineTension={0,0,0};
+        final float[] rodBend={0,0,0};
+        final boolean[] facingLeft={true,true,true};
+        float stamina=100f;
+        float fishNX=.25f, fishNY=.56f, fishVX=.055f, fishVY=.018f;
+        float damagePopup=0f, damageX=0f, damageY=0f;
+        long damageUntil=0, skillFxUntil=0;
+        long lastDamageTick=0;
 
         final String[] rods={"Cần Tre","Cần Sắt","Cần Thép","Cần Vàng","Cần Thần","Cần Hải Thần"};
         final int[] rodCost={0,1800,6500,18000,50000,150000};
@@ -186,13 +195,25 @@ public class MainActivity extends Activity {
             p.setColor(Color.rgb(239,234,214));c.drawRect(w*.65f,0,w,h,p);p.setColor(Color.rgb(86,150,69));c.drawRect(w*.65f,0,w,h*.13f,p);p.setColor(Color.rgb(58,112,55));c.drawRect(w*.65f,h*.13f,w,h*.16f,p);p.setColor(Color.argb(115,255,255,255));
             for(int i=0;i<24;i++){float yy=h*.38f+(i*31)%Math.max(1,(int)(h*.36f));float xx=(i*71)%Math.max(1,(int)(w*.62f));c.drawRoundRect(xx,yy,Math.min(w*.62f,xx+35+(i%4)*20),yy+3,3,3,p);}
             panel(c,10,10,218,113,Color.argb(190,12,20,28));text(c,"gameone",25,31,17,Color.WHITE);text(c,"Lv "+level+"  •  "+mapNames[map],25,51,12,Color.WHITE);text(c,"THỂ LỰC "+Math.min(100,(int)(100-tension*.55f))+"%",25,72,12,Color.WHITE);text(c,"Cá "+(fishHooked()?catchWeight:0)+" kg",25,93,12,Color.YELLOW);text(c,"$ "+money,w-105,35,19,Color.YELLOW);
-            drawSideMenu(c,w,h);float[] px={w*.76f,w*.84f,w*.92f};float base=h*.74f;for(int i=0;i<3;i++){float lean=(float)Math.sin(now/160.0+i)*2;if(fishHooked())lean-=4;drawHero(c,px[i],base,i,.92f,lean);drawRodLine(c,px[i],base,i,w,h);}
-            float fx=w*(.24f+(float)Math.sin(now/300.0)*.045f),fy=h*(.54f+(float)Math.sin(now/240.0)*.04f);drawFish(c,fx,fy,fishHooked()?0.95f:0.72f,fishHooked());if(phase==WAIT_BITE){center(c,"...",fx,fy-60,30,Color.WHITE);center(c,"Cá đang dò mồi",w*.29f,h*.35f,17,Color.WHITE);}else if(phase==FIGHT)center(c,"CÁ CẮN!",w*.30f,h*.34f,26,Color.WHITE);
-            panel(c,14,h-92,248,h-18,Color.argb(160,0,0,0));text(c,"Dây "+String.format(Locale.US,"%.1f",distance)+" / "+(int)maxLine+" m",28,h-60,13,Color.WHITE);text(c,phase==READY?"Nhấn THẢ LƯỚI":phase==WAIT_BITE?"Chờ cá cắn...":reelHeld?"ĐANG KÉO!":"Thả để dây hồi",28,h-36,11,Color.YELLOW);
+            drawSideMenu(c,w,h);float fx=w*(.08f+fishNX*.54f),fy=h*(.36f+fishNY*.36f);
+            for(int i=0;i<3;i++){float px=w*charX[i],base=h*(charY[i]);float lean=(float)Math.sin(now/150.0+i)*2; if(fishHooked())lean-=rodBend[i]*7f;drawHero(c,px,base,i,.92f,lean);drawRodLine(c,px,base,i,fx,fy,rodBend[i]);}
+            drawFish(c,fx,fy,fishHooked()?1.02f:0.72f,fishHooked());
+            if(phase==WAIT_BITE){center(c,"...",fx,fy-60,30,Color.WHITE);center(c,"Cá đang dò mồi",w*.29f,h*.35f,17,Color.WHITE);}
+            else if(phase==FIGHT){center(c,"CÁ CẮN!",w*.30f,h*.34f,26,Color.WHITE);drawFishHud(c,fx,fy,w);}
+            if(damageUntil>now){center(c,"-"+(int)damagePopup,damageX,damageY,16,Color.rgb(255,235,120));}
+            drawFishHud(c,fx,fy,w);
+            panel(c,14,h-105,270,h-18,Color.argb(170,0,0,0));
+            text(c,"Dây 1: "+String.format(Locale.US,"%.1f",lineDistance[0])+"m  "+(int)lineTension[0]+"%",28,h-77,11,Color.WHITE);
+            text(c,"Dây 2: "+String.format(Locale.US,"%.1f",lineDistance[1])+"m  "+(int)lineTension[1]+"%",28,h-59,11,Color.WHITE);
+            text(c,"Dây 3: "+String.format(Locale.US,"%.1f",lineDistance[2])+"m  "+(int)lineTension[2]+"%",28,h-41,11,Color.WHITE);
+            text(c,phase==READY?"Nhấn THẢ LƯỚI":phase==WAIT_BITE?"Chờ cá cắn...":reelHeld?"ĐANG KÉO 3 CẦN!":"Thả để cá kéo",28,h-23,11,Color.YELLOW);
             joyX=94;joyY=h-150;p.setColor(Color.argb(78,0,0,0));c.drawCircle(joyX,joyY,62,p);outline(c,joyX-JOY_R,joyY-JOY_R,joyX+JOY_R,joyY+JOY_R,Color.WHITE,3);float kx=joyActive?joyKnobX:joyX,ky=joyActive?joyKnobY:joyY;p.setColor(Color.argb(230,244,193,56));c.drawCircle(kx,ky,25,p);
             for(int i=0;i<3;i++){float l=w*.47f+i*w*.10f,t=h-70,r=l+w*.09f,b=h-16;drawSkill(c,l,t,r,b,i);}float bx=w*.90f,by=h*.68f;p.setColor(Color.argb(85,0,0,0));c.drawCircle(bx+4,by+5,59,p);p.setColor(Color.rgb(38,74,83));c.drawCircle(bx,by,55,p);outline(c,bx-46,by-46,bx+46,by+46,Color.WHITE,4);center(c,phase==READY?"THẢ LƯỚI":phase==WAIT_BITE?"ĐANG CHỜ":"CO DÂY",bx,by+4,12,Color.WHITE);
-            p.setColor(Color.argb(150,0,0,0));c.drawRoundRect(w*.30f,h*.90f,w*.63f,h*.945f,8,8,p);p.setColor(tension>84?Color.RED:tension>64?Color.YELLOW:Color.rgb(69,214,135));c.drawRoundRect(w*.30f,h*.90f,w*.30f+w*.33f*tension/100f,h*.945f,8,8,p);center(c,"CĂNG DÂY "+(int)tension+"%",w*.465f,h*.931f,11,Color.WHITE);
-            if(toastUntil>now)drawToast(c,w,h,toast);if(skillFx)drawSkillFx(c,w,h,now);
+            p.setColor(Color.argb(145,0,0,0));c.drawRoundRect(w*.30f,h*.90f,w*.63f,h*.945f,8,8,p);
+            float avgT=(lineTension[0]+lineTension[1]+lineTension[2])/3f;
+            p.setColor(avgT>84?Color.RED:avgT>64?Color.YELLOW:Color.rgb(69,214,135));c.drawRoundRect(w*.30f,h*.90f,w*.30f+w*.33f*avgT/100f,h*.945f,8,8,p);
+            center(c,"CĂNG DÂY "+(int)avgT+"%  •  THỂ LỰC "+(int)stamina+"%",w*.465f,h*.931f,10,Color.WHITE);
+            if(toastUntil>now)drawToast(c,w,h,toast);if(skillFx&&skillFxUntil>now)drawSkillFx(c,w,h,now);
         }
 
         void drawSideMenu(Canvas c,int w,int h){String[] m={"Người câu","Cách đánh cá","Cây câu","Quán cá"};for(int i=0;i<4;i++){float l=7,t=126+i*61,r=158,b=t+49;panel(c,l,t,r,b,Color.argb(220,247,242,226));outline(c,l,t,r,b,Color.rgb(82,74,66),2);p.setColor(Color.rgb(82,157,196));c.drawRoundRect(l+5,t+5,l+40,b-5,6,6,p);center(c,"•",l+22,t+34,21,Color.WHITE);text(c,m[i],l+47,t+31,13,Color.rgb(60,53,49));}}
@@ -201,22 +222,67 @@ public class MainActivity extends Activity {
         void drawFish(Canvas c,float x,float y,float sc,boolean hooked){p.setColor(hooked?Color.rgb(104,67,165):Color.rgb(48,107,165));c.drawOval(x-78*sc,y-34*sc,x+72*sc,y+34*sc,p);path.reset();path.moveTo(x+60*sc,y);path.lineTo(x+116*sc,y-45*sc);path.lineTo(x+105*sc,y);path.lineTo(x+116*sc,y+45*sc);path.close();c.drawPath(path,p);p.setColor(Color.WHITE);c.drawCircle(x-46*sc,y-7*sc,10*sc,p);p.setColor(Color.BLACK);c.drawCircle(x-46*sc,y-7*sc,4*sc,p);p.setColor(Color.rgb(175,86,113));path.reset();path.moveTo(x-5*sc,y-23*sc);path.lineTo(x+28*sc,y-55*sc);path.lineTo(x+34*sc,y-16*sc);path.close();c.drawPath(path,p);}
         void drawSkill(Canvas c,float l,float t,float r,float b,int who){panel(c,l,t,r,b,Color.argb(190,11,23,31));outline(c,l,t,r,b,body[who],2);center(c,skillShort[who],(l+r)/2,t+21,10,Color.WHITE);center(c,"Lv "+skillLv[who],(l+r)/2,t+42,10,Color.YELLOW);if(cooldown[who]>0)center(c,(cooldown[who]/1000)+"s",(l+r)/2,t+61,9,Color.LTGRAY);}
         void drawToast(Canvas c,int w,int h,String s){float y=h*.75f;panel(c,w*.30f,y,w*.70f,y+43,Color.argb(215,17,24,29));center(c,s,w*.50f,y+27,13,Color.WHITE);}
-        void drawSkillFx(Canvas c,int w,int h,long now){float a=(float)Math.max(.15,Math.min(1,(toastUntil-now)/950.0));float cx=w*.52f,cy=h*.46f;p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(7);p.setColor(Color.argb((int)(180*a),255,233,100));c.drawCircle(cx,cy,55+(now%350),p);c.drawCircle(cx,cy,95+(now%420),p);for(int i=0;i<10;i++){double ang=i*Math.PI/5;c.drawLine(cx+(float)Math.cos(ang)*60,cy+(float)Math.sin(ang)*60,cx+(float)Math.cos(ang)*145,cy+(float)Math.sin(ang)*145,p);}p.setStyle(Paint.Style.FILL);center(c,skills[activeSkill]+"!",cx,cy-115,26,Color.WHITE);}
-
+        void drawSkillFx(Canvas c,int w,int h,long now){float a=Math.max(.15f,Math.min(1f,(skillFxUntil-now)/850f));float cx=w*(.08f+fishNX*.54f),cy=h*(.36f+fishNY*.36f);
+            p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(3);p.setColor(Color.argb((int)(190*a),255,224,94));c.drawCircle(cx,cy,22+28*a,p);
+            for(int i=0;i<6;i++){double ang=i*Math.PI/3;c.drawLine(cx+(float)Math.cos(ang)*25,cy+(float)Math.sin(ang)*25,cx+(float)Math.cos(ang)*55,cy+(float)Math.sin(ang)*55,p);}
+            p.setStyle(Paint.Style.FILL);center(c,skills[activeSkill],cx,cy-42,14,Color.WHITE);
+        }
+        void drawFishHud(Canvas c,float fx,float fy,int w){float left=Math.max(12,Math.min(w*.58f,fx-70)),top=Math.max(78,fy-88),right=left+145;
+            panel(c,left,top,right,top+43,Color.argb(190,8,15,22));text(c,getFishNameNow(),left+8,top+17,12,Color.WHITE);
+            p.setColor(Color.rgb(55,66,72));c.drawRoundRect(left+8,top+25,right-8,top+33,4,4,p);p.setColor(Color.rgb(239,86,76));c.drawRoundRect(left+8,top+25,left+8+(right-left-16)*Math.max(0,fishHp),top+33,4,4,p);
+            text(c,(int)Math.ceil(fishHp*100)+"% HP",left+8,top+40,9,Color.LTGRAY);
+        }
         boolean fishHooked(){return phase==FIGHT;}
 
         void updateFishing(float dt,long now){
             for(int i=0;i<3;i++)if(cooldown[i]>0)cooldown[i]=Math.max(0,cooldown[i]-(int)(dt*1000));
-            fishWave+=dt;if(phase==WAIT_BITE&&now>=biteAt){phase=FIGHT;distance=maxLine*.82f;tension=35;toast("CÁ CẮN! Giữ CO DÂY để kéo",2300);tone(1);}
+            stamina=Math.min(100f,stamina+dt);
+            if(skillFx&&now>=skillFxUntil)skillFx=false;
+            if(phase==WAIT_BITE&&now>=biteAt){
+                phase=FIGHT;
+                for(int i=0;i<3;i++){lineDistance[i]=maxLine*(.72f+i*.035f);lineTension[i]=32+i*4;rodBend[i]=.18f;}
+                toast("CÁ CẮN! Giữ CO DÂY để kéo từng nhịp",2300);tone(1);
+            }
             if(phase!=FIGHT)return;
-            float fishStruggle=(.55f+catchWeight/160000f*1.25f)*(.85f+(float)Math.sin(now/180.0)*.15f);
-            float teamPower=rodPower[rod]*.006f+(charLv[0]+charLv[1]+charLv[2])*.008f+(skillLv[0]+skillLv[1]+skillLv[2])*.011f;
-            if(reelHeld){fishHp-=(teamPower+.75f)*dt;distance-=(1.6f+teamPower*1.7f)*dt;tension+=(11f+fishStruggle*12f)*dt;}
-            else{distance+=fishStruggle*2.2f*dt;tension-=14f*dt;}
-            tension=Math.max(6,Math.min(100,tension));if(tension>=99.9f){endFishing(false,"Dây quá căng! Cá thoát.");return;}if(distance>maxLine){endFishing(false,"Cá kéo quá xa! Mất dấu.");return;}if(fishHp<=0||distance<=0)finishCatch();
+            float struggle=(.70f+catchWeight/160000f*1.20f)*(1f+.18f*(float)Math.sin(now/170.0));
+            fishNX+=fishVX*dt*(reelHeld?-1.0f:1.0f);
+            fishNY+=fishVY*dt*(reelHeld?-0.7f:1.0f);
+            if(fishNX<.08f||fishNX>.86f)fishVX=-fishVX;
+            if(fishNY<.38f||fishNY>.90f)fishVY=-fishVY;
+            float totalDamage=0,totalPull=0;
+            for(int i=0;i<3;i++){
+                float power=rodPower[rod]*(.85f+i*.05f)+charLv[i]*9f+skillLv[i]*6f;
+                float pull=power*.0045f;
+                if(reelHeld){
+                    lineDistance[i]=Math.max(0,lineDistance[i]-(1.0f+pull*2.8f)*dt);
+                    lineTension[i]+= (7.5f+struggle*5.5f-pull*.9f)*dt;
+                    totalDamage+=power*.12f*dt;
+                    totalPull+=pull;
+                }else{
+                    lineDistance[i]+=struggle*(1.35f+i*.12f)*dt;
+                    lineTension[i]-=12f*dt;
+                }
+                float targetT=8f+lineDistance[i]/Math.max(1,maxLine)*82f;
+                lineTension[i]=Math.max(4f,Math.min(100f,Math.max(lineTension[i],targetT)));
+                rodBend[i]=Math.min(1f,lineTension[i]/100f);
+                if(lineDistance[i]>maxLine){endFishing(false,"Dây "+(i+1)+" quá dài! Cá thoát.");return;}
+                if(lineTension[i]>=99.8f){endFishing(false,"Dây "+(i+1)+" quá căng!");return;}
+            }
+            if(reelHeld&&now-lastDamageTick>220){
+                lastDamageTick=now;
+                damagePopup=Math.max(1,totalDamage/.22f);
+                damageX=getWidth()*(.08f+fishNX*.54f);
+                damageY=getHeight()*(.36f+fishNY*.36f)-45;
+                damageUntil=now+650;
+            }
+            if(reelHeld){fishHp-=totalDamage;fishNX=Math.max(.08f,fishNX-totalPull*.006f*dt);}
+            else{fishHp+=struggle*.00012f*dt;fishHp=Math.min(1f,fishHp);}
+            distance=(lineDistance[0]+lineDistance[1]+lineDistance[2])/3f;
+            tension=(lineTension[0]+lineTension[1]+lineTension[2])/3f;
+            if(fishHp<=0f||distance<=0.5f){finishCatch();return;}
         }
 
-        void startCast(){if(sumCaught()>=storage){toast("Kho đầy! Hãy bán cá trước.",2200);return;}if(baitCount<=0){toast("Hết mồi! Mua thêm trong TRANG BỊ.",2200);return;}baitCount--;fishId=pickFish();catchWeight=fishKg(map,fishId);fishValue=catchWeight*fishCoin(map,fishId);fishHp=1f;maxLine=rodLine[rod]+map*12;distance=maxLine*.70f;tension=20;phase=WAIT_BITE;reelHeld=false;biteAt=System.currentTimeMillis()+1200+rnd.nextInt(2200);toast("Đã thả mồi • chờ cá cắn",1800);tone(0);save();}
+        void startCast(){if(sumCaught()>=storage){toast("Kho đầy! Hãy bán cá trước.",2200);return;}if(baitCount<=0){toast("Hết mồi! Mua thêm trong TRANG BỊ.",2200);return;}baitCount--;fishId=pickFish();catchWeight=fishKg(map,fishId);fishValue=catchWeight*fishCoin(map,fishId);fishHp=1f;maxLine=rodLine[rod]+map*12;distance=maxLine*.70f;tension=20;for(int i=0;i<3;i++){lineDistance[i]=maxLine*.70f;lineTension[i]=18+i*2;rodBend[i]=.12f;}fishNX=.25f;fishNY=.56f;fishVX=.055f;fishVY=.018f;phase=WAIT_BITE;reelHeld=false;stamina=100f;biteAt=System.currentTimeMillis()+1200+rnd.nextInt(2200);toast("Đã thả mồi • 3 cần cùng chờ cá",1800);tone(0);save();}
         int pickFish(){float rare=baitRare[bait],roll=rnd.nextFloat();float rareStart=.70f; if(roll<rareStart){return roll<.45f?0:1;} if(roll<rareStart+rare*.75f)return 2; if(roll<rareStart+rare)return 3; return 1;}
         int fishKg(int m,int id){return this.fishKg[Math.max(0,Math.min(5,m))][Math.max(0,Math.min(3,id))];}
         int fishCoin(int m,int id){return fishCoinPerKg[Math.max(0,Math.min(5,m))][Math.max(0,Math.min(3,id))];}
@@ -228,11 +294,16 @@ public class MainActivity extends Activity {
         void reelDown(){if(phase==READY){startCast();return;}if(phase==FIGHT)reelHeld=true;}
         void reelUp(){reelHeld=false;}
 
-        void activateSkill(int who){if(phase!=FIGHT||cooldown[who]>0)return;activeSkill=who;skillFx=true;toastUntil=System.currentTimeMillis()+950;cooldown[who]=9000;
-            if(who==0){distance=Math.max(0,distance-8-skillLv[who]*2);tension=Math.max(7,tension-24);fishHp-=.16f+skillLv[who]*.025f;toast("XE KÉO • cả 3 cùng kéo",1800);}
-            else if(who==1){fishHp-=.25f+skillLv[who]*.035f;tension=Math.min(99,tension+18);distance=Math.max(0,distance-10);toast("PHI THIÊN VÔ CỰC • bộc phát",1800);}
-            else{tension=Math.max(5,tension-45);distance=Math.max(0,distance-4);toast("HỘ LỰC • ổn định dây",1800);}
-            tone(2);if(fishHp<=0||distance<=0)finishCatch();
+        void activateSkill(int who){if(phase!=FIGHT||cooldown[who]>0)return;
+            float cost=12f+skillLv[who]*2f;if(stamina<cost){toast("Không đủ thể lực",1200);return;}
+            stamina-=cost;activeSkill=who;skillFx=true;skillFxUntil=System.currentTimeMillis()+850;cooldown[who]=9000;
+            int dmg;
+            if(who==0){dmg=(int)(110+skillLv[who]*35);lineDistance[who]=Math.max(0,lineDistance[who]-10-skillLv[who]*1.5f);lineTension[who]=Math.max(5,lineTension[who]-22);fishNX=Math.max(.08f,fishNX-.035f);toast("XE KÉO • kéo cá lại",1400);}
+            else if(who==1){dmg=(int)(160+skillLv[who]*45);lineDistance[who]=Math.max(0,lineDistance[who]-7);lineTension[who]=Math.min(96,lineTension[who]+8);toast("PHI THIÊN VÔ CỰC • đánh mạnh",1400);}
+            else{dmg=(int)(70+skillLv[who]*22);for(int i=0;i<3;i++)lineTension[i]=Math.max(5,lineTension[i]-25);lineDistance[who]=Math.max(0,lineDistance[who]-4);toast("HỘ LỰC • ổn định 3 dây",1400);}
+            fishHp-=dmg/Math.max(1f,catchWeight/900f);
+            damagePopup=dmg;damageX=getWidth()*(.08f+fishNX*.54f);damageY=getHeight()*(.36f+fishNY*.36f)-55;damageUntil=System.currentTimeMillis()+850;
+            skillFxUntil=System.currentTimeMillis()+850;tone(2);if(fishHp<=0||distance<=0)finishCatch();
         }
 
         void finishCatch(){phase=READY;reelHeld=false;resultCaught=true;int idx=map*4+fishId;if(sumCaught()<storage)caught[idx]++;money+=fishValue;xp+=Math.max(5,catchWeight/25);level=Math.max(1,1+xp/500);questFish++;questKg+=catchWeight;if(catchWeight>=100000)questLegend++;toast("Bắt được "+getFishNameNow()+" • +$"+fishValue,2500);tone(3);save();screen=RESULT;}
