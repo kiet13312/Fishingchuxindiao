@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
         int questFish=0,questKg=0,questLegend=0;
         boolean quest1Claim=false,quest2Claim=false,quest3Claim=false;
 
-        int phase=READY,fishId=0,fishKg=80,fishValue=1600;
+        int phase=READY,fishId=0,catchWeight=80,fishValue=1600;
         float fishHp=1f,tension=22f,distance=0f,maxLine=35f;
         long biteAt=0,toastUntil=0;
         boolean reelHeld=false,skillFx=false,resultCaught=false;
@@ -185,8 +185,8 @@ public class MainActivity extends Activity {
         void drawFishing(Canvas c,long now){int w=getWidth(),h=getHeight();p.setShader(new LinearGradient(0,0,w*.67f,0,mapWater[map],Color.rgb(72,178,193),Shader.TileMode.CLAMP));c.drawRect(0,0,w*.69f,h,p);p.setShader(null);
             p.setColor(Color.rgb(239,234,214));c.drawRect(w*.65f,0,w,h,p);p.setColor(Color.rgb(86,150,69));c.drawRect(w*.65f,0,w,h*.13f,p);p.setColor(Color.rgb(58,112,55));c.drawRect(w*.65f,h*.13f,w,h*.16f,p);p.setColor(Color.argb(115,255,255,255));
             for(int i=0;i<24;i++){float yy=h*.38f+(i*31)%Math.max(1,(int)(h*.36f));float xx=(i*71)%Math.max(1,(int)(w*.62f));c.drawRoundRect(xx,yy,Math.min(w*.62f,xx+35+(i%4)*20),yy+3,3,3,p);}
-            panel(c,10,10,218,113,Color.argb(190,12,20,28));text(c,"gameone",25,31,17,Color.WHITE);text(c,"Lv "+level+"  •  "+mapNames[map],25,51,12,Color.WHITE);text(c,"THỂ LỰC "+Math.min(100,(int)(100-tension*.55f))+"%",25,72,12,Color.WHITE);text(c,"Cá "+(fishHooked()?fishKg:0)+" kg",25,93,12,Color.YELLOW);text(c,"$ "+money,w-105,35,19,Color.YELLOW);
-            drawSideMenu(c,w,h);float[] px={w*.76f,w*.84f,w*.92f},base=h*.74f;for(int i=0;i<3;i++){float lean=(float)Math.sin(now/160.0+i)*2;if(fishHooked())lean-=4;drawHero(c,px[i],base,i,.92f,lean);drawRodLine(c,px[i],base,i,w,h);}
+            panel(c,10,10,218,113,Color.argb(190,12,20,28));text(c,"gameone",25,31,17,Color.WHITE);text(c,"Lv "+level+"  •  "+mapNames[map],25,51,12,Color.WHITE);text(c,"THỂ LỰC "+Math.min(100,(int)(100-tension*.55f))+"%",25,72,12,Color.WHITE);text(c,"Cá "+(fishHooked()?catchWeight:0)+" kg",25,93,12,Color.YELLOW);text(c,"$ "+money,w-105,35,19,Color.YELLOW);
+            drawSideMenu(c,w,h);float[] px={w*.76f,w*.84f,w*.92f};float base=h*.74f;for(int i=0;i<3;i++){float lean=(float)Math.sin(now/160.0+i)*2;if(fishHooked())lean-=4;drawHero(c,px[i],base,i,.92f,lean);drawRodLine(c,px[i],base,i,w,h);}
             float fx=w*(.24f+(float)Math.sin(now/300.0)*.045f),fy=h*(.54f+(float)Math.sin(now/240.0)*.04f);drawFish(c,fx,fy,fishHooked()?0.95f:0.72f,fishHooked());if(phase==WAIT_BITE){center(c,"...",fx,fy-60,30,Color.WHITE);center(c,"Cá đang dò mồi",w*.29f,h*.35f,17,Color.WHITE);}else if(phase==FIGHT)center(c,"CÁ CẮN!",w*.30f,h*.34f,26,Color.WHITE);
             panel(c,14,h-92,248,h-18,Color.argb(160,0,0,0));text(c,"Dây "+String.format(Locale.US,"%.1f",distance)+" / "+(int)maxLine+" m",28,h-60,13,Color.WHITE);text(c,phase==READY?"Nhấn THẢ LƯỚI":phase==WAIT_BITE?"Chờ cá cắn...":reelHeld?"ĐANG KÉO!":"Thả để dây hồi",28,h-36,11,Color.YELLOW);
             joyX=94;joyY=h-150;p.setColor(Color.argb(78,0,0,0));c.drawCircle(joyX,joyY,62,p);outline(c,joyX-JOY_R,joyY-JOY_R,joyX+JOY_R,joyY+JOY_R,Color.WHITE,3);float kx=joyActive?joyKnobX:joyX,ky=joyActive?joyKnobY:joyY;p.setColor(Color.argb(230,244,193,56));c.drawCircle(kx,ky,25,p);
@@ -209,14 +209,14 @@ public class MainActivity extends Activity {
             for(int i=0;i<3;i++)if(cooldown[i]>0)cooldown[i]=Math.max(0,cooldown[i]-(int)(dt*1000));
             fishWave+=dt;if(phase==WAIT_BITE&&now>=biteAt){phase=FIGHT;distance=maxLine*.82f;tension=35;toast("CÁ CẮN! Giữ CO DÂY để kéo",2300);tone(1);}
             if(phase!=FIGHT)return;
-            float fishStruggle=(.55f+fishKg/160000f*1.25f)*(.85f+(float)Math.sin(now/180.0)*.15f);
+            float fishStruggle=(.55f+catchWeight/160000f*1.25f)*(.85f+(float)Math.sin(now/180.0)*.15f);
             float teamPower=rodPower[rod]*.006f+(charLv[0]+charLv[1]+charLv[2])*.008f+(skillLv[0]+skillLv[1]+skillLv[2])*.011f;
             if(reelHeld){fishHp-=(teamPower+.75f)*dt;distance-=(1.6f+teamPower*1.7f)*dt;tension+=(11f+fishStruggle*12f)*dt;}
             else{distance+=fishStruggle*2.2f*dt;tension-=14f*dt;}
             tension=Math.max(6,Math.min(100,tension));if(tension>=99.9f){endFishing(false,"Dây quá căng! Cá thoát.");return;}if(distance>maxLine){endFishing(false,"Cá kéo quá xa! Mất dấu.");return;}if(fishHp<=0||distance<=0)finishCatch();
         }
 
-        void startCast(){if(sumCaught()>=storage){toast("Kho đầy! Hãy bán cá trước.",2200);return;}if(baitCount<=0){toast("Hết mồi! Mua thêm trong TRANG BỊ.",2200);return;}baitCount--;fishId=pickFish();fishKg=fishKg(map,fishId);fishValue=fishKg*fishCoin(map,fishId);fishHp=1f;maxLine=rodLine[rod]+map*12;distance=maxLine*.70f;tension=20;phase=WAIT_BITE;reelHeld=false;biteAt=System.currentTimeMillis()+1200+rnd.nextInt(2200);toast("Đã thả mồi • chờ cá cắn",1800);tone(0);save();}
+        void startCast(){if(sumCaught()>=storage){toast("Kho đầy! Hãy bán cá trước.",2200);return;}if(baitCount<=0){toast("Hết mồi! Mua thêm trong TRANG BỊ.",2200);return;}baitCount--;fishId=pickFish();catchWeight=fishKg(map,fishId);fishValue=catchWeight*fishCoin(map,fishId);fishHp=1f;maxLine=rodLine[rod]+map*12;distance=maxLine*.70f;tension=20;phase=WAIT_BITE;reelHeld=false;biteAt=System.currentTimeMillis()+1200+rnd.nextInt(2200);toast("Đã thả mồi • chờ cá cắn",1800);tone(0);save();}
         int pickFish(){float rare=baitRare[bait],roll=rnd.nextFloat();float rareStart=.70f; if(roll<rareStart){return roll<.45f?0:1;} if(roll<rareStart+rare*.75f)return 2; if(roll<rareStart+rare)return 3; return 1;}
         int fishKg(int m,int id){return this.fishKg[Math.max(0,Math.min(5,m))][Math.max(0,Math.min(3,id))];}
         int fishCoin(int m,int id){return fishCoinPerKg[Math.max(0,Math.min(5,m))][Math.max(0,Math.min(3,id))];}
@@ -235,10 +235,10 @@ public class MainActivity extends Activity {
             tone(2);if(fishHp<=0||distance<=0)finishCatch();
         }
 
-        void finishCatch(){phase=READY;reelHeld=false;resultCaught=true;int idx=map*4+fishId;if(sumCaught()<storage)caught[idx]++;money+=fishValue;xp+=Math.max(5,fishKg/25);level=Math.max(1,1+xp/500);questFish++;questKg+=fishKg;if(fishKg>=100000)questLegend++;toast("Bắt được "+getFishNameNow()+" • +$"+fishValue,2500);tone(3);save();screen=RESULT;}
+        void finishCatch(){phase=READY;reelHeld=false;resultCaught=true;int idx=map*4+fishId;if(sumCaught()<storage)caught[idx]++;money+=fishValue;xp+=Math.max(5,catchWeight/25);level=Math.max(1,1+xp/500);questFish++;questKg+=catchWeight;if(catchWeight>=100000)questLegend++;toast("Bắt được "+getFishNameNow()+" • +$"+fishValue,2500);tone(3);save();screen=RESULT;}
         void endFishing(boolean ok,String msg){phase=READY;reelHeld=false;resultCaught=false;toast=msg;toastUntil=System.currentTimeMillis()+2200;tone(4);save();screen=RESULT;}
 
-        void drawResult(Canvas c){int w=getWidth(),h=getHeight();bg(c,w,h,mapWater[map]);p.setColor(Color.argb(125,0,0,0));c.drawRect(0,0,w,h,p);panel(c,w*.28f,h*.19f,w*.72f,h*.74f,Color.argb(238,12,16,21));center(c,resultCaught?"CÂU THÀNH CÔNG":"CÁ THOÁT",w*.50f,h*.30f,32,resultCaught?Color.rgb(120,240,165):Color.rgb(255,150,120));center(c,resultCaught?getFishNameNow():"Đừng để căng dây quá lâu",w*.50f,h*.39f,20,Color.WHITE);if(resultCaught){center(c,fishKg+" kg",w*.50f,h*.45f,26,Color.YELLOW);center(c,"+$"+fishValue+" • XP +"+Math.max(5,fishKg/25),w*.50f,h*.50f,15,Color.rgb(180,230,190));}else center(c,"Luyện nhịp kéo và thả dây để cá tự mỏi",w*.50f,h*.45f,14,Color.LTGRAY);button(c,w*.37f,h*.56f,w*.63f,h*.64f,"CÂU TIẾP",true);button(c,w*.37f,h*.66f,w*.63f,h*.74f,"VỀ SẢNH",false);}
+        void drawResult(Canvas c){int w=getWidth(),h=getHeight();bg(c,w,h,mapWater[map]);p.setColor(Color.argb(125,0,0,0));c.drawRect(0,0,w,h,p);panel(c,w*.28f,h*.19f,w*.72f,h*.74f,Color.argb(238,12,16,21));center(c,resultCaught?"CÂU THÀNH CÔNG":"CÁ THOÁT",w*.50f,h*.30f,32,resultCaught?Color.rgb(120,240,165):Color.rgb(255,150,120));center(c,resultCaught?getFishNameNow():"Đừng để căng dây quá lâu",w*.50f,h*.39f,20,Color.WHITE);if(resultCaught){center(c,catchWeight+" kg",w*.50f,h*.45f,26,Color.YELLOW);center(c,"+$"+fishValue+" • XP +"+Math.max(5,catchWeight/25),w*.50f,h*.50f,15,Color.rgb(180,230,190));}else center(c,"Luyện nhịp kéo và thả dây để cá tự mỏi",w*.50f,h*.45f,14,Color.LTGRAY);button(c,w*.37f,h*.56f,w*.63f,h*.64f,"CÂU TIẾP",true);button(c,w*.37f,h*.66f,w*.63f,h*.74f,"VỀ SẢNH",false);}
 
         @Override public boolean onTouchEvent(MotionEvent e){
             float x=e.getX(),y=e.getY();int w=getWidth(),h=getHeight(),a=e.getActionMasked();
