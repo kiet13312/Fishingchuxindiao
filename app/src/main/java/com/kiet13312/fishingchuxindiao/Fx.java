@@ -4,7 +4,7 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 
 final class Fx {
-    static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A};
+    static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
     static final String[] NAME = {"Sở Tâm", "Bá Thường", "Lão Ngô"};
 
     static float rnd(int n) { float x = (float) Math.sin(n * 12.9898) * 43758.547f; return x - (float) Math.floor(x); }
@@ -21,9 +21,9 @@ final class Fx {
         p.setStyle(Paint.Style.FILL);
         p.setColor(0x44000000); c.drawOval(x - 30 * s, y - 4 * s, x + 30 * s, y + 8 * s, p);
         p.setColor(0xFF333333); c.drawRect(x - 11 * s, y - 26 * s, x - 2 * s, y, p); c.drawRect(x + 2 * s, y - 26 * s, x + 11 * s, y, p);
-        p.setColor(BODY[i]); c.drawRoundRect(x - 15 * s, y - 74 * s, x + 15 * s, y - 24 * s, 9 * s, 9 * s, p);
+        p.setColor(BODY[i % BODY.length]); c.drawRoundRect(x - 15 * s, y - 74 * s, x + 15 * s, y - 24 * s, 9 * s, 9 * s, p);
         p.setColor(0xFFF2C9A0); c.drawCircle(x, y - 90 * s, 15 * s, p);
-        p.setColor(i == 2 ? 0xFFD9D9D9 : 0xFF2A2230); c.drawCircle(x, y - 98 * s, 10 * s, p);
+        p.setColor(i % 3 == 2 ? 0xFFD9D9D9 : 0xFF2A2230); c.drawCircle(x, y - 98 * s, 10 * s, p);
         p.setColor(0xFF222222); c.drawCircle(x - 5 * s, y - 90 * s, 1.8f * s, p); c.drawCircle(x + 5 * s, y - 90 * s, 1.8f * s, p);
         p.setStrokeWidth(3 * s); p.setColor(0xFF4A3A2A); c.drawLine(x + 10 * s, y - 52 * s, x + 85 * s, y - 165 * s, p);
     }
