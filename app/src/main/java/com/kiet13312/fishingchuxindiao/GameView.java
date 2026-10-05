@@ -14,12 +14,12 @@ public class GameView extends View {
     static final int LOBBY = 0, CHAR = 1, MAPS = 2, TALK = 3, UPG = 4, FISH = 5;
     static final String[] CH = {"Trương Tiểu", "Trần Bạch Cương", "Em họ", "Em trai", "Thương Không", "Ngất ngọt", "Công cô câu", "Bắc Mộng", "Thiên quốc", "Ông Cương", "Nam Khổng", "Hào Đảo Đế"};
     static final int[] CLV = {1, 15, 60, 1, 16, 60, 1, 1, 60, 1, 0, 0};
-    static final String[] MP = {"Bản đập Pá Đất", "Nước thải ô nhiễm", "Hắc Hổ", "Ngũ Hồ Sơn Lợi", "Thôn Quái", "Quán sau Nam Cương"};
-    static final String[] MF = {"Ngựa lưng chừng", "Shark biển đỏ", "Cá chép tai bạc", "Cá rồng hình rồng", "Ây ngư âm", "Kún"};
-    static final int[] MW = {30, 200, 2000, 12000, 50000, 120000}, MLV = {1, 10, 20, 30, 50, 80};
-    static final int[] MC = {0xFF2FA3B3, 0xFF4E9A5E, 0xFF2A6FA0, 0xFF3A7FD0, 0xFF4A5C7A, 0xFF1B4F72};
-    static final String[] ROD = {"Cần Tre", "Cần Sắt", "Cần Thép", "Cần Vàng", "Cần Thần", "Cần Hải Thần"};
-    static final int[] RP = {80, 160, 300, 520, 900, 1500}, RC = {0, 1500, 6000, 18000, 50000, 150000};
+    static final String[] MP = {"Bản đập Pá Đất", "Nước thải ô nhiễm", "Hắc Hổ", "Địa Đồ Lễ Hội", "Ngũ Hồ Sơn Lợi", "Thôn Quái", "Quán sau Nam Cương", "Bờ Biển", "Trường Bạch Sơn"};
+    static final String[] MF = {"Ngựa lưng chừng", "Shark biển đỏ", "Cá chép tai bạc", "Cá lễ hội vàng", "Cá rồng hình rồng", "Ây ngư âm", "Kún", "Thủy quái bờ biển", "Cá Chép Râu Bạc"};
+    static final int[] MW = {30, 200, 2000, 5000, 12000, 50000, 120000, 500000, 1500000}, MLV = {1, 10, 20, 30, 40, 55, 70, 85, 95};
+    static final int[] MC = {0xFF2FA3B3, 0xFF4E9A5E, 0xFF2A6FA0, 0xFF7A4FB0, 0xFF3A7FD0, 0xFF4A5C7A, 0xFF1B4F72, 0xFF0F6FA8, 0xFF8FB8C8};
+    static final String[] ROD = {"Cần Tre", "Cần Sắt", "Cần Thép", "Cần Thép Gân", "Cần Vàng", "Cần Thần", "Cần Hải Thần", "Đao Long Ấn"};
+    static final int[] RP = {80, 160, 300, 520, 900, 1500, 2600, 4500}, RC = {0, 1500, 6000, 18000, 50000, 150000, 500000, 1500000};
     static final String[] SKN = {"Chàng trai xuống núi", "Đại ma bại trận", "Gà trống đại chiến", "Ngược dòng", "Ông lão đạp xe đạp", "Tay bóng phản chiếu", "Câu cá bằng động cơ", "Phá ông chìm thuyền"};
     static final int[] SC = {40, 60, 80, 120, 180, 250, 80, 300};
     static final String TALK_TXT = "Thằng cá độ đáng ghét, dám bắt cá của tôi ở bên kia, hôm nay dù anh là ai thì cũng không dễ anh chạy trốn được.";
@@ -34,7 +34,7 @@ public class GameView extends View {
     long money = 500, xp, inv, bite, msgT, fxT, talkT, hitT, lastMs = System.currentTimeMillis();
     float hp = 1, hpMax = 1, dist, maxLine = 40, ten, st = 150, u = 1, t, jx, jy, fxDmg, hitD, zoom = 1, lx = .34f, ly = .88f;
     float[] cd = new float[8], px = {.34f, .26f, .18f}, py = {.88f, .88f, .88f};
-    boolean reel, spot, gift;
+    boolean reel, spot, gift, fxSnd;
     String msg = "";
 
     GameView(Context c) {
@@ -54,9 +54,11 @@ public class GameView extends View {
         e.apply();
     }
 
-    int lv() { return (int) Math.min(100, 1 + xp / 400); }
+    long cum(int n) { return (long) (n - 1) * (100 + 20 * n); }
+    int lv() { int l = 1; while (l < 100 && cum(l + 1) <= xp) l++; return l; }
+    long need() { return 100 + 40L * lv(); }
     int maxSt() { return 150 + lv() * 5; }
-    float pw() { float s = 3f * (RP[rod] + lv() * 6f); for (int i = 0; i < 8; i++) s += sk[i]; for (int i = 0; i < 3; i++) s += CLV[team[i]] * 2; return s; }
+    float pw() { float s = 3f * (RP[rod] + lv() * 6f) + (rod == 7 ? 1500 : 0); for (int i = 0; i < 8; i++) s += sk[i]; for (int i = 0; i < 3; i++) s += CLV[team[i]] * 2; return s; }
     float sm(int i) { return 1.2f + .35f * i + .05f * sk[i]; }
     long uc(int i) { return sk[i] == 0 ? 1500L * (i + 1) * (i + 1) : 120L * sk[i] * (10 + sk[i]) / 10 * (i + 1); }
     boolean inTeam(int c) { return team[0] == c || team[1] == c || team[2] == c; }
@@ -65,7 +67,7 @@ public class GameView extends View {
     void win() {
         phase = 0; reel = false;
         long v = (long) kg * (2 + map);
-        inv += v; invN++; xp += Math.max(5, kg / 10);
+        inv += v; invN++; xp += 15 + kg / 3; Snd.play(Snd.WIN);
         say("Bắt được " + MF[map] + " " + kg + " lạng (+$" + v + ")");
     }
 
@@ -78,7 +80,7 @@ public class GameView extends View {
         if (i % 3 == 0) dist = Math.max(0, dist - 8);
         if (i % 3 == 2) ten = Math.max(5, ten - 30);
         hp -= d;
-        fxWho = i; fxT = System.currentTimeMillis(); fxDmg = d;
+        fxWho = i; fxT = System.currentTimeMillis(); fxDmg = d; fxSnd = false; Snd.play(Snd.WHOOSH);
         if (hp <= 0) win();
     }
 
@@ -92,7 +94,7 @@ public class GameView extends View {
                 hpMax = hp = 112f * (float) Math.pow(kg, .55);
                 maxLine = 40 + rod * 15 + map * 6; dist = maxLine * .7f; ten = 20;
                 phase = 1; spot = true; bite = now + 1200 + rnd.nextInt(2500);
-                say("Đã thả lưới...");
+                say("Đã thả lưới..."); Snd.play(Snd.CAST);
             } else if (phase == 2) { reel = true; ptr = pt; }
         } else if (id == 3) { if (phase == 0) scr = LOBBY; }
         else if (id >= 10 && id < 13) skill(id - 10);
@@ -100,7 +102,7 @@ public class GameView extends View {
             int i = id - 20;
             long cost = uc(i);
             if (sk[i] >= 100) say("Đã mãn cấp"); else if (money >= cost) { money -= cost; sk[i]++; } else say("Không đủ tiền");
-        } else if (id >= 30 && id < 36) {
+        } else if (id >= 30 && id < 38) {
             int i = id - 30;
             if (i <= rod) rod = i; else if (money >= RC[i]) { money -= RC[i]; rod = i; } else say("Không đủ tiền");
         } else if (id == 40) { if (money >= 100) { money -= 100; baits += 10; } else say("Không đủ tiền"); }
@@ -117,7 +119,7 @@ public class GameView extends View {
             } else team[eqN++ % 3] = sel;
         } else if (id == 81) { if (money >= 50000) { money -= 50000; unl |= 1 << sel; } else say("Cần $50000 để mở khóa"); }
         else if (id >= 100 && id < 112) sel = id - 100;
-        else if (id >= 200 && id < 206) {
+        else if (id >= 200 && id < 209) {
             if (lv() >= MLV[id - 200]) { map = id - 200; scr = TALK; talkT = now; } else say("Cần đạt Lv " + MLV[id - 200] + " mới vào được");
         } else if (id == 120) { scr = FISH; phase = 0; spot = false; }
         else if (id == 130 || id == 131) tab = id - 130;
@@ -168,16 +170,16 @@ public class GameView extends View {
         zoom += ((phase == 2 ? 1.22f : 1f) - zoom) * Math.min(1f, 3 * dt);
         for (int i = 0; i < 8; i++) cd[i] = Math.max(0, cd[i] - dt);
         st = Math.min(maxSt(), st + (phase == 2 ? 4 : 8) * dt);
-        if (phase == 1 && now >= bite) { phase = 2; dist = maxLine * .7f; ten = 30; say("CÁ CẮN! Giữ CO LẠI ĐÂY"); }
+        if (phase == 1 && now >= bite) { phase = 2; dist = maxLine * .7f; ten = 30; say("CÁ CẮN! Giữ CO LẠI ĐÂY"); Snd.play(Snd.BITE); }
         if (phase != 2) return;
-        float s = (.8f + kg / 60000f) * (1 + .2f * (float) Math.sin(t * 6));
+        float s = (.8f + Math.min(3f, kg / 60000f)) * (1 + .2f * (float) Math.sin(t * 6));
         if (reel) {
             dist = Math.max(0, dist - (1.5f + pw() / 500) * dt); ten += (10 + s * 6) * dt; hp -= pw() * dt;
-            if (now - hitT > 300) { hitT = now; hitD = pw() * .3f; }
+            if (now - hitT > 300) { hitT = now; hitD = pw() * .3f; Snd.play(Snd.TICK); }
         } else { dist += s * 1.4f * dt; ten -= 14 * dt; hp = Math.min(hpMax, hp + hpMax * .01f * dt); }
         ten = Math.max(5 + 60 * dist / maxLine, Math.min(100, ten));
-        if (dist > maxLine) { phase = 0; reel = false; say("Cá thoát mất!"); }
-        else if (ten >= 99.5f) { phase = 0; reel = false; say("Dây đứt rồi!"); }
+        if (dist > maxLine) { phase = 0; reel = false; say("Cá thoát mất!"); Snd.play(Snd.LOSE); }
+        else if (ten >= 99.5f) { phase = 0; reel = false; say("Dây đứt rồi!"); Snd.play(Snd.LOSE); }
         else if (hp <= 0 || dist < .3f) win();
     }
 
@@ -226,8 +228,9 @@ public class GameView extends View {
         box(c, 10 * u, 10 * u, 262 * u, 122 * u, 0xBF0C141C);
         tx(c, CH[team[0]], 22 * u, 32 * u, 14, 0xFFFFFFFF, false);
         tx(c, "Lv " + lv(), 22 * u, 52 * u, 12, 0xFFFFFFFF, false);
-        bar(c, 70 * u, 42 * u, 250 * u, 54 * u, (xp % 400) / 400f, 0xFF5AAAFF);
-        tx(c, (xp % 400) + "/400", 74 * u, 52 * u, 9, 0xFFFFFFFF, false);
+        long cur = xp - cum(lv()), nd = need();
+        bar(c, 70 * u, 42 * u, 250 * u, 54 * u, (float) cur / nd, 0xFF5AAAFF);
+        tx(c, cur + "/" + nd, 74 * u, 52 * u, 9, 0xFFFFFFFF, false);
         tx(c, "Thể lực", 22 * u, 72 * u, 12, 0xFFFFFFFF, false);
         bar(c, 70 * u, 62 * u, 250 * u, 74 * u, st / maxSt(), 0xFFE6463C);
         tx(c, (int) st + "/" + maxSt(), 74 * u, 72 * u, 9, 0xFFFFFFFF, false);
@@ -287,16 +290,15 @@ public class GameView extends View {
     void maps(Canvas c, int w, int h) {
         btn(c, 150, "‹ Quay lại trang chủ", 10 * u, 10 * u, 220 * u, 52 * u, false);
         float cw = (w - 80 * u) / 3f;
-        for (int i = 0; i < 6; i++) {
-            float l = 20 * u + i % 3 * (cw + 20 * u), tp = 70 * u + i / 3 * 225 * u;
-            hit.add(new float[]{l, tp, l + cw, tp + 210 * u, 200 + i});
-            box(c, l, tp, l + cw, tp + 210 * u, 0xFF18242C);
-            p.setColor(0xFF6FBF8A); c.drawRect(l + 8 * u, tp + 34 * u, l + cw - 8 * u, tp + 90 * u, p);
-            p.setColor(MC[i]); c.drawRect(l + 8 * u, tp + 90 * u, l + cw - 8 * u, tp + 140 * u, p);
-            tx(c, MP[i], l + cw / 2, tp + 24 * u, 14, 0xFFFFFFFF, true);
-            tx(c, "Loài cá đặc biệt: " + MF[i], l + 12 * u, tp + 160 * u, 11, 0xFFF2B931, false);
-            tx(c, MW[i] * 8 / 10 + "-" + MW[i] * 12 / 10 + " lạng", l + 12 * u, tp + 180 * u, 11, 0xFFFFFFFF, false);
-            tx(c, lv() >= MLV[i] ? "Chạm để vào" : "Cần đạt Lv " + MLV[i], l + 12 * u, tp + 200 * u, 11, lv() >= MLV[i] ? 0xFF45D687 : 0xFFFF4040, false);
+        for (int i = 0; i < 9; i++) {
+            float l = 20 * u + i % 3 * (cw + 20 * u), tp = 60 * u + i / 3 * 155 * u;
+            hit.add(new float[]{l, tp, l + cw, tp + 145 * u, 200 + i});
+            box(c, l, tp, l + cw, tp + 145 * u, 0xFF18242C);
+            p.setColor(0xFF6FBF8A); c.drawRect(l + 8 * u, tp + 30 * u, l + cw - 8 * u, tp + 70 * u, p);
+            p.setColor(MC[i]); c.drawRect(l + 8 * u, tp + 70 * u, l + cw - 8 * u, tp + 100 * u, p);
+            tx(c, MP[i], l + cw / 2, tp + 22 * u, 13, 0xFFFFFFFF, true);
+            tx(c, MF[i] + " " + MW[i] * 8 / 10 + "-" + MW[i] * 12 / 10, l + 8 * u, tp + 116 * u, 10, 0xFFF2B931, false);
+            tx(c, lv() >= MLV[i] ? "Chạm để vào" : "Cần đạt Lv " + MLV[i], l + 8 * u, tp + 136 * u, 10, lv() >= MLV[i] ? 0xFF45D687 : 0xFFFF4040, false);
         }
     }
 
@@ -330,13 +332,13 @@ public class GameView extends View {
                 btn(c, 140 + i, on ? "Hủy cấu hình" : "Cấu hình", l + 6 * u, tp + 160 * u, l + cw - 6 * u, tp + 205 * u, sk[i] > 0 && !on);
             }
         } else {
-            float cw = (w - 220 * u) / 3f;
-            for (int i = 0; i < 6; i++) {
-                float l = 185 * u + i % 3 * (cw + 10 * u), tp = 70 * u + i / 3 * 90 * u;
-                btn(c, 30 + i, ROD[i] + " (Lực " + RP[i] + ") " + (i == rod ? "đang dùng" : i < rod ? "dùng" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || money >= RC[i]);
+            float cw = (w - 230 * u) / 4f;
+            for (int i = 0; i < 8; i++) {
+                float l = 185 * u + i % 4 * (cw + 6 * u), tp = 70 * u + i / 4 * 90 * u;
+                btn(c, 30 + i, ROD[i] + " " + (i == rod ? "(đang dùng)" : i < rod ? "(dùng)" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || money >= RC[i]);
             }
-            btn(c, 40, "Mua 10 mồi $100 (có " + baits + ")", 185 * u, 280 * u, 185 * u + cw, 340 * u, money >= 100);
-            btn(c, 41, "Bán " + invN + " cá $" + inv, 195 * u + cw, 280 * u, 195 * u + 2 * cw, 340 * u, invN > 0);
+            btn(c, 40, "Mua 10 mồi $100 (có " + baits + ")", 185 * u, 280 * u, 185 * u + 2 * cw, 340 * u, money >= 100);
+            btn(c, 41, "Bán " + invN + " cá $" + inv, 197 * u + 2 * cw, 280 * u, 191 * u + 4 * cw, 340 * u, invN > 0);
         }
     }
 
@@ -377,14 +379,18 @@ public class GameView extends View {
         }
         if (phase == 1) { p.setColor(0xFFE5413A); c.drawCircle(fx, fy, 7 * u, p); }
         if (phase == 2) {
-            float s = u * (.6f + .9f * (float) Math.sqrt(kg / 120000f));
+            float s = u * (.6f + .9f * (float) Math.sqrt(Math.min(1f, kg / 120000f)));
             p.setColor(0xFF6843A5);
             c.drawOval(fx - 40 * s, fy - 17 * s, fx + 36 * s, fy + 17 * s, p);
             c.drawCircle(fx + 50 * s, fy, 14 * s, p);
             if (now - hitT < 500) Fx.text(c, p, "-" + (int) hitD, fx + 40 * u, fy - 50 * u - (now - hitT) * .08f * u, 20 * u, 0xFFC04DFF);
         }
         if (fxWho >= 0) {
-            if (k >= 1f) fxWho = -1; else Fx.draw(c, p, w, h, u, k, fxWho % 3, SKN[fxWho], fx, fy, fxDmg);
+            if (k >= 1f) fxWho = -1;
+            else {
+                if (k > .45f && !fxSnd) { fxSnd = true; Snd.play(Snd.BOOM); }
+                Fx.draw(c, p, w, h, u, k, fxWho, SKN[fxWho], fx, fy, fxDmg, team[0]);
+            }
         }
         c.restore();
         hud(c, w, h);
