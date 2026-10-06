@@ -61,8 +61,14 @@ public class MainActivity extends Activity {
         static final int[] MC = {0xFF2FA3B3, 0xFF4E9A5E, 0xFF2A6FA0, 0xFF7A4FB0, 0xFF3A7FD0, 0xFF4A5C7A, 0xFF1B4F72, 0xFF0F6FA8, 0xFF8FB8C8};
         static final String[] ROD = {"Cần Tre", "Cần Sắt", "Cần Thép", "Cần Thép Gân", "Cần Vàng", "Cần Thần", "Cần Hải Thần", "Đao Long Ấn"};
         static final int[] RP = {80, 160, 300, 520, 900, 1500, 2600, 4500}, RC = {0, 1500, 6000, 18000, 50000, 150000, 500000, 1500000};
-        static final String[] SKN = {"Chàng trai xuống núi", "Đại ma bại trận", "Gà trống đại chiến", "Ngược dòng", "Ông lão đạp xe đạp", "Tay bóng phản chiếu", "Câu cá bằng động cơ", "Phá ông chìm thuyền"};
-        static final int[] SC = {40, 60, 80, 120, 180, 250, 80, 300};
+        static final String[] SKN = {
+                "Ổn Như Lão Cẩu Chi Điếu", "Mã Đạt Điếu Pháp", "Các Bà Cô Thất Bại",
+                "Chàng Trai Xuống Núi", "Quay Đầu Móc", "Lão Hán Đạp Đơn Xa",
+                "Phi Thiên Vô Cực", "Song Long Xuất Thải", "Tề Thiên Đại Điếu Pháp",
+                "Ga Chống Đè Trứng", "Hoành Tảo Thiên Quân", "Câu Long Quyển Hổ",
+                "Khỉ Chui Trời", "Thiên Đề Đánh Một Gậy", "Thí Thần Điếu",
+                "Nhất Điếu Khai Thiên Môn", "Phá Phủ Trầm Chu", "Sở Tân Câu"};
+        static final int[] SC = {40,45,55,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
         static final String TALK_TXT = "Thằng cá độ đáng ghét, dám bắt cá của tôi ở bên kia, hôm nay dù anh là ai thì cũng không dễ anh chạy trốn được.";
 
         final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -83,7 +89,7 @@ public class MainActivity extends Activity {
             sp = c.getSharedPreferences("fish5", 0);
             money = sp.getLong("m", 500); xp = sp.getLong("x", 0); rod = sp.getInt("r", 0); baits = sp.getInt("b", 20);
             inv = sp.getLong("i", 0); invN = sp.getInt("n", 0); unl = sp.getInt("u", 0x3FF); gift = sp.getBoolean("g", false);
-            for (int i = 0; i < 8; i++) sk[i] = sp.getInt("s" + i, i < 2 ? 1 : 0);
+            for (int i = 0; i < 18; i++) sk[i] = sp.getInt("s" + i, i < 2 ? 1 : 0);
             for (int i = 0; i < 3; i++) { team[i] = sp.getInt("t" + i, i); eq[i] = sp.getInt("e" + i, i < 2 ? i : -1); }
             err = sp.getString("crash", null);
             if (err != null) sp.edit().remove("crash").apply();
@@ -92,7 +98,7 @@ public class MainActivity extends Activity {
         void save() {
             SharedPreferences.Editor e = sp.edit();
             e.putLong("m", money).putLong("x", xp).putInt("r", rod).putInt("b", baits).putLong("i", inv).putInt("n", invN).putInt("u", unl).putBoolean("g", gift);
-            for (int i = 0; i < 8; i++) e.putInt("s" + i, sk[i]);
+            for (int i = 0; i < 18; i++) e.putInt("s" + i, sk[i]);
             for (int i = 0; i < 3; i++) { e.putInt("t" + i, team[i]); e.putInt("e" + i, eq[i]); }
             e.apply();
         }
@@ -101,8 +107,8 @@ public class MainActivity extends Activity {
         int lv() { int l = 1; while (l < 100 && cum(l + 1) <= xp) l++; return l; }
         long need() { return 100 + 40L * lv(); }
         int maxSt() { return 150 + lv() * 5; }
-        float pw() { float s = 3f * (RP[rod] + lv() * 6f) + (rod == 7 ? 1500 : 0); for (int i = 0; i < 8; i++) s += sk[i]; for (int i = 0; i < 3; i++) s += CLV[team[i]] * 2; return s; }
-        float sm(int i) { return 1.2f + .35f * i + .05f * sk[i]; }
+        float pw() { float s = 3f * (RP[rod] + lv() * 6f) + (rod == 7 ? 1500 : 0); for (int i = 0; i < 18; i++) s += sk[i]; for (int i = 0; i < 3; i++) s += CLV[team[i]] * 2; return s; }
+        float sm(int i) { return 1.15f + .16f * i + .04f * sk[i]; }
         long uc(int i) { return sk[i] == 0 ? 1500L * (i + 1) * (i + 1) : 120L * sk[i] * (10 + sk[i]) / 10 * (i + 1); }
         boolean inTeam(int c) { return team[0] == c || team[1] == c || team[2] == c; }
         void say(String s) { msg = s; msgT = System.currentTimeMillis() + 2500; }
@@ -142,7 +148,7 @@ public class MainActivity extends Activity {
                 } else if (phase == 2) { reel = true; ptr = pt; }
             } else if (id == 3) { if (phase == 0) scr = LOBBY; }
             else if (id >= 10 && id < 13) skill(id - 10);
-            else if (id >= 20 && id < 28) {
+            else if (id >= 20 && id < 38) {
                 int i = id - 20;
                 long cost = uc(i);
                 if (sk[i] >= 100) say("Đã mãn cấp"); else if (money >= cost) { money -= cost; sk[i]++; } else say("Không đủ tiền");
@@ -167,7 +173,7 @@ public class MainActivity extends Activity {
                 if (lv() >= MLV[id - 200]) { map = id - 200; scr = TALK; talkT = now; } else say("Cần đạt Lv " + MLV[id - 200] + " mới vào được");
             } else if (id == 120) { scr = FISH; phase = 0; spot = false; }
             else if (id == 130 || id == 131) tab = id - 130;
-            else if (id >= 140 && id < 148) {
+            else if (id >= 140 && id < 158) {
                 int i = id - 140, slot = -1;
                 for (int j = 0; j < 3; j++) if (eq[j] == i) slot = j;
                 if (sk[i] == 0) say("Chưa mở khóa");
@@ -212,7 +218,7 @@ public class MainActivity extends Activity {
                 py[i] += (ty - py[i]) * Math.min(1f, 5 * dt);
             }
             zoom += ((phase == 2 ? 1.22f : 1f) - zoom) * Math.min(1f, 3 * dt);
-            for (int i = 0; i < 8; i++) cd[i] = Math.max(0, cd[i] - dt);
+            for (int i = 0; i < 18; i++) cd[i] = Math.max(0, cd[i] - dt);
             st = Math.min(maxSt(), st + (phase == 2 ? 4 : 8) * dt);
             if (phase == 1 && now >= bite) { phase = 2; dist = maxLine * .7f; ten = 30; say("CÁ CẮN! Giữ CO LẠI ĐÂY"); Snd.play(Snd.BITE); }
             if (phase != 2) return;
@@ -380,17 +386,17 @@ public class MainActivity extends Activity {
             btn(c, 131, "Cần câu & mồi", 10 * u, 126 * u, 170 * u, 172 * u, tab == 1);
             tx(c, "$" + money, 190 * u, 40 * u, 16, 0xFFF2B931, false);
             if (tab == 0) {
-                float cw = (w - 200 * u) / 4f;
-                for (int i = 0; i < 8; i++) {
-                    float l = 185 * u + i % 4 * (cw + 6 * u), tp = 60 * u + i / 4 * 235 * u;
-                    box(c, l, tp, l + cw, tp + 225 * u, 0xFF18242C);
-                    tx(c, SKN[i], l + cw / 2, tp + 22 * u, 11, 0xFFFFFFFF, true);
-                    tx(c, sk[i] == 0 ? "Chưa mở khóa" : sk[i] >= 100 ? "Lv 100 (mãn cấp)" : "Lv " + sk[i], l + cw / 2, tp + 44 * u, 12, 0xFFF2B931, true);
-                    tx(c, "Chi tiêu thể lực: " + SC[i], l + 8 * u, tp + 70 * u, 10, 0xFFCCCCCC, false);
-                    tx(c, "Lực: " + (int) (pw() * sm(i)), l + 8 * u, tp + 90 * u, 10, 0xFFCCCCCC, false);
-                    btn(c, 20 + i, sk[i] >= 100 ? "Đã mãn cấp" : (sk[i] == 0 ? "Mở khóa $" : "Nâng cấp $") + uc(i), l + 6 * u, tp + 105 * u, l + cw - 6 * u, tp + 150 * u, sk[i] < 100 && money >= uc(i));
+                float cw = (w - 205 * u) / 6f;
+                for (int i = 0; i < 18; i++) {
+                    float l = 185 * u + i % 6 * (cw + 6 * u), tp = 52 * u + i / 6 * 158 * u;
+                    box(c, l, tp, l + cw, tp + 148 * u, 0xFF18242C);
+                    tx(c, SKN[i].length() > 18 ? SKN[i].substring(0, 18) + "…" : SKN[i], l + cw / 2, tp + 19 * u, 9, 0xFFFFFFFF, true);
+                    tx(c, sk[i] == 0 ? "Chưa mở khóa" : sk[i] >= 100 ? "Lv 100" : "Lv " + sk[i], l + cw / 2, tp + 38 * u, 10, 0xFFF2B931, true);
+                    tx(c, "Thể lực: " + SC[i], l + 6 * u, tp + 57 * u, 8, 0xFFCCCCCC, false);
+                    tx(c, "Lực: " + (int) (pw() * sm(i)), l + 6 * u, tp + 73 * u, 8, 0xFFCCCCCC, false);
+                    btn(c, 20 + i, sk[i] >= 100 ? "Mãn cấp" : (sk[i] == 0 ? "Mở khóa $" : "Nâng cấp $") + uc(i), l + 5 * u, tp + 82 * u, l + cw - 5 * u, tp + 112 * u, sk[i] < 100 && money >= uc(i));
                     boolean on = eq[0] == i || eq[1] == i || eq[2] == i;
-                    btn(c, 140 + i, on ? "Hủy cấu hình" : "Cấu hình", l + 6 * u, tp + 160 * u, l + cw - 6 * u, tp + 205 * u, sk[i] > 0 && !on);
+                    btn(c, 140 + i, on ? "Hủy" : "Cấu hình", l + 5 * u, tp + 118 * u, l + cw - 5 * u, tp + 145 * u, sk[i] > 0 && !on);
                 }
             } else {
                 float cw = (w - 230 * u) / 4f;
@@ -495,9 +501,14 @@ public class MainActivity extends Activity {
     static final class Fx {
         static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
         static final Path path = new Path();
-        static final int[][] BG = {{0xFF6EC6F0, 0xFFE8F6D8}, {0xFFEDEDED, 0xFF9A9AA8}, {0xFF4A2A6A, 0xFFE8903A}, {0xFF2A9AB0, 0xFFBFEFF0},
-                {0xFF0A5A66, 0xFF29E0E8}, {0xFF0B1030, 0xFF304880}, {0xFF300808, 0xFFFF7A18}, {0xFF081018, 0xFF2A5A78}};
-        static final int[] MAIN = {0xFFFFD27A, 0xFFFFFFFF, 0xFFFFE04A, 0xFF9FF0FF, 0xFF7FF8FF, 0xFFB8D8FF, 0xFFFF9A2A, 0xFF7FE8FF};
+        static final int[][] BG = {
+                {0xFF6EC6F0,0xFFE8F6D8},{0xFFEDEDED,0xFF9A9AA8},{0xFF4A2A6A,0xFFE8903A},{0xFF2A9AB0,0xFFBFEFF0},
+                {0xFF0A5A66,0xFF29E0E8},{0xFF0B1030,0xFF304880},{0xFF300808,0xFFFF7A18},{0xFF081018,0xFF2A5A78},
+                {0xFF173B72,0xFF7AE7FF},{0xFF6B3B18,0xFFFFD15A},{0xFF143D2B,0xFF66F0A0},{0xFF18244F,0xFF7C9CFF},
+                {0xFF2A173A,0xFFFF76C8},{0xFF4A3310,0xFFFFE48A},{0xFF160F38,0xFFB58CFF},{0xFF173E5C,0xFF8CF7FF},
+                {0xFF321A12,0xFFFF8A5C},{0xFF0F3540,0xFF65E9FF}};
+        static final int[] MAIN = {0xFFFFD27A,0xFFFFFFFF,0xFFFFE04A,0xFF9FF0FF,0xFF7FF8FF,0xFFB8D8FF,0xFFFF9A2A,0xFF7FE8FF,
+                0xFF73D8FF,0xFFFFD15A,0xFF66F0A0,0xFF8FA8FF,0xFFFF76C8,0xFFFFE48A,0xFFB58CFF,0xFF8CF7FF,0xFFFF8A5C,0xFF65E9FF};
 
         static float rnd(int n) { float x = (float) Math.sin(n * 12.9898) * 43758.547f; return x - (float) Math.floor(x); }
         static float seg(float k, float a, float b) { return Math.max(0f, Math.min(1f, (k - a) / (b - a))); }
@@ -738,6 +749,16 @@ public class MainActivity extends Activity {
                     }
                     break;
                 }
+                case 8: { pose(c,p,cx,cy,S,who,70,155,0,.05f,1,0,true); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(12*u); p.setColor(al(MAIN[sk],.85f)); float r=(100+260*seg(k,.1f,.65f))*u; c.drawOval(cx-r,cy-r*.45f,cx+r,cy+r*.45f,p); break; }
+                case 9: { float q=seg(k,0,.45f); pose(c,p,cx,cy,S,who,-30,145,0,.35f*q,1-q,0,true); cracks(c,p,u,cx,cy,seg(k,.25f,.55f)); break; }
+                case 10: { pose(c,p,cx,cy,S,who,15,165,0,0,1,0,true); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(18*u); p.setColor(al(MAIN[sk],.8f)); c.drawArc(cx-250*u,cy-180*u,cx+250*u,cy+180*u,-55,110,false,p); if(im>0)c.drawLine(cx+20*S,cy-110*S,fx,fy,p); break; }
+                case 11: { pose(c,p,cx,cy,S,who,50,150,0,0,1,0,true); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(8*u); p.setColor(al(MAIN[sk],.9f)); for(int i=0;i<4;i++){float r=(40+i*55+seg(k,0,.8f)*120)*u;c.drawOval(fx-r,fy-r*.55f,fx+r,fy+r*.55f,p);} break; }
+                case 12: { float q=seg(k,0,.55f); pose(c,p,cx,cy-q*h*.28f,S,who,-70,150,.1f,0,1,0,true); p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(7*u); p.setColor(al(MAIN[sk],.7f)); c.drawLine(cx,cy,cx+q*(fx-cx),cy+q*(fy-cy),p); break; }
+                case 13: { pose(c,p,cx,cy,S,who,85,190,0,0,1,0,true); if(k>.3f){p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(14*u);p.setColor(al(MAIN[sk],1-seg(k,.7f,1)));c.drawLine(cx+20*S,cy-160*S,fx,fy,p);} break; }
+                case 14: { pose(c,p,cx,cy,S,who,35,160,0,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(5*u);p.setColor(al(MAIN[sk],.9f)); for(int i=0;i<6;i++){float r=(55+i*28+80*k)*u;c.drawCircle(fx,fy,r,p);} break; }
+                case 15: { pose(c,p,cx,cy,S,who,-10,175,0,0,1,0,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(24*u);p.setColor(al(MAIN[sk],.65f));c.drawLine(fx,0,fx,fy,p);p.setStrokeWidth(5*u);p.setColor(0xFFFFFFFF);c.drawLine(fx,0,fx,fy,p); break; }
+                case 16: { pose(c,p,cx,cy,S,who,25,180,-.2f,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(22*u);p.setColor(al(MAIN[sk],.65f));c.drawLine(cx+120*S,cy-90*S,fx,fy,p); cracks(c,p,u,fx,fy,seg(k,.35f,.65f)); break; }
+                case 17: { pose(c,p,cx,cy,S,who,45,170,0,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(9*u);p.setColor(al(MAIN[sk],.85f)); for(int i=0;i<9;i++){float r=(45+i*24+120*k)*u;c.drawOval(fx-r,fy-r*.5f,fx+r,fy+r*.5f,p);} if(k>.35f)c.drawLine(cx+80*S,cy-100*S,fx,fy,p); break; }
                 default: { // Phá ông chìm thuyền: giơ cần gọi rồng, rồng phun tia
                     pose(c, p, cx, cy, S, who, 45f, 160f, 0, 0, 1f, 0, true);
                     float dh = seg(k, .15f, .45f), hx = w * 1.1f + (fx + 120 * u - w * 1.1f) * dh, hy = fy - 30 * u;
