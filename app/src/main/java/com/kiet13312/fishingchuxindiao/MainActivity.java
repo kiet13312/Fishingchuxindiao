@@ -77,10 +77,10 @@ public class MainActivity extends Activity {
         final SharedPreferences sp;
         final ArrayList<float[]> hit = new ArrayList<float[]>();
         int scr, map, sel, tab, rod, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, unl = 0x3FF, eqN; // phase: 0 rảnh, 1 chờ cá, 2 đang kéo
-        int[] sk = {1, 1, 0, 0, 0, 0, 0, 0}, team = {0, 1, 2}, eq = {0, 1, -1};
+        int[] sk = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, team = {0, 1, 2}, eq = {0, 1, -1};
         long money = 500, xp, inv, bite, msgT, fxT, talkT, hitT, lastMs = System.currentTimeMillis();
         float hp = 1, hpMax = 1, dist, maxLine = 40, ten, st = 150, u = 1, t, jx, jy, fxDmg, hitD, zoom = 1, lx = .34f, ly = .88f;
-        float[] cd = new float[8], px = {.34f, .26f, .18f}, py = {.88f, .88f, .88f};
+        float[] cd = new float[18], px = {.34f, .26f, .18f}, py = {.88f, .88f, .88f};
         boolean reel, spot, gift, fxSnd;
         String msg = "", err;
 
