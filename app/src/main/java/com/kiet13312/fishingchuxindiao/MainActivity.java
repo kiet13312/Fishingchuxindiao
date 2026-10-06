@@ -4,6 +4,9 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
+import android.graphics.Bitmap;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -53,7 +56,7 @@ public class MainActivity extends Activity {
 
     static class GameView extends View {
         static final int LOBBY = 0, CHAR = 1, MAPS = 2, TALK = 3, UPG = 4, FISH = 5;
-        static final String[] CH = {"Trương Tiểu", "Trần Bạch Cương", "Em họ", "Em trai", "Thương Không", "Ngất ngọt", "Công cô câu", "Bắc Mộng", "Thiên quốc", "Ông Cương", "Nam Khổng", "Hào Đảo Đế"};
+        static final String[] CH = {"Trương Tinh", "Trần Bạch Cương", "Em họ", "Em trai", "Thương Không", "Ngất ngọt", "Công cô câu", "Bắc Mộng", "Thiên quốc", "Ông Cương", "Nam Khổng", "Hào Đảo Đế"};
         static final int[] CLV = {1, 15, 60, 1, 16, 60, 1, 1, 60, 1, 0, 0};
         static final String[] MP = {"Bản đập Pá Đất", "Nước thải ô nhiễm", "Hắc Hổ", "Địa Đồ Lễ Hội", "Ngũ Hồ Sơn Lợi", "Thôn Quái", "Quán sau Nam Cương", "Bờ Biển", "Trường Bạch Sơn"};
         static final String[] MF = {"Ngựa lưng chừng", "Shark biển đỏ", "Cá chép tai bạc", "Cá lễ hội vàng", "Cá rồng hình rồng", "Ây ngư âm", "Kún", "Thủy quái bờ biển", "Cá Chép Râu Bạc"};
@@ -87,6 +90,7 @@ public class MainActivity extends Activity {
         GameView(Context c) {
             super(c);
             sp = c.getSharedPreferences("fish5", 0);
+            Fx.initTT();
             money = sp.getLong("m", 500); xp = sp.getLong("x", 0); rod = sp.getInt("r", 0); baits = sp.getInt("b", 20);
             inv = sp.getLong("i", 0); invN = sp.getInt("n", 0); unl = sp.getInt("u", 0x3FF); gift = sp.getBoolean("g", false);
             for (int i = 0; i < 18; i++) sk[i] = sp.getInt("s" + i, i < 2 ? 1 : 0);
@@ -148,13 +152,13 @@ public class MainActivity extends Activity {
                 } else if (phase == 2) { reel = true; ptr = pt; }
             } else if (id == 3) { if (phase == 0) scr = LOBBY; }
             else if (id >= 10 && id < 13) skill(id - 10);
-            else if (id >= 20 && id < 38) {
+            else if (id >= 300 && id < 308) {
+                int i = id - 300;
+                if (i <= rod) rod = i; else if (money >= RC[i]) { money -= RC[i]; rod = i; } else say("Không đủ tiền");
+            } else if (id >= 20 && id < 38) {
                 int i = id - 20;
                 long cost = uc(i);
                 if (sk[i] >= 100) say("Đã mãn cấp"); else if (money >= cost) { money -= cost; sk[i]++; } else say("Không đủ tiền");
-            } else if (id >= 30 && id < 38) {
-                int i = id - 30;
-                if (i <= rod) rod = i; else if (money >= RC[i]) { money -= RC[i]; rod = i; } else say("Không đủ tiền");
             } else if (id == 40) { if (money >= 100) { money -= 100; baits += 10; } else say("Không đủ tiền"); }
             else if (id == 41 || id == 63) { if (invN == 0) say("Kho đang trống"); else { money += inv; say("Đã bán cá +$" + inv); inv = 0; invN = 0; } }
             else if (id == 150) scr = LOBBY;
@@ -402,7 +406,7 @@ public class MainActivity extends Activity {
                 float cw = (w - 230 * u) / 4f;
                 for (int i = 0; i < 8; i++) {
                     float l = 185 * u + i % 4 * (cw + 6 * u), tp = 70 * u + i / 4 * 90 * u;
-                    btn(c, 30 + i, ROD[i] + " " + (i == rod ? "(đang dùng)" : i < rod ? "(dùng)" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || money >= RC[i]);
+                    btn(c, 300 + i, ROD[i] + " " + (i == rod ? "(đang dùng)" : i < rod ? "(dùng)" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || money >= RC[i]);
                 }
                 btn(c, 40, "Mua 10 mồi $100 (có " + baits + ")", 185 * u, 280 * u, 185 * u + 2 * cw, 340 * u, money >= 100);
                 btn(c, 41, "Bán " + invN + " cá $" + inv, 197 * u + 2 * cw, 280 * u, 191 * u + 4 * cw, 340 * u, invN > 0);
@@ -438,6 +442,9 @@ public class MainActivity extends Activity {
             c.scale(zoom, zoom, w * .45f, h * .8f);
             lake(c, w, h);
             float fx = w * (.56f + .36f * (phase == 2 ? dist / maxLine : .55f)), fy = h * (.55f + .03f * (float) Math.sin(t * 1.7f));
+            Fx.ttMode = phase == 2
+                    ? (reel ? 3 : 2)
+                    : ((Math.abs(jx) > .1f || Math.abs(jy) > .1f) ? 1 : 0);
             for (int i = 2; i >= 0; i--) {
                 float x = w * px[i], y = h * py[i];
                 Fx.person(c, p, x, y, u * .8f, team[i]);
@@ -501,6 +508,24 @@ public class MainActivity extends Activity {
     static final class Fx {
         static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
         static final Path path = new Path();
+        static Bitmap TT_BITMAP;
+        static int ttMode = 0;
+
+        static void initTT() {
+            if (TT_BITMAP == null) TT_BITMAP = TruongTinhAsset.load();
+        }
+
+        static void drawTT(Canvas c, Paint p, float x, float y, float s, int frame) {
+            if (TT_BITMAP == null) return;
+            frame = Math.max(0, Math.min(4, frame));
+            Rect src = new Rect(frame * 60, 0, frame * 60 + 60, 100);
+            float dh = 160f * s;
+            float dw = 96f * s;
+            p.setFilterBitmap(true);
+            c.drawBitmap(TT_BITMAP, src,
+                    new RectF(x - dw / 2f, y - dh, x + dw / 2f, y), p);
+            p.setFilterBitmap(false);
+        }
         static final int[][] BG = {
                 {0xFF6EC6F0,0xFFE8F6D8},{0xFFEDEDED,0xFF9A9AA8},{0xFF4A2A6A,0xFFE8903A},{0xFF2A9AB0,0xFFBFEFF0},
                 {0xFF0A5A66,0xFF29E0E8},{0xFF0B1030,0xFF304880},{0xFF300808,0xFFFF7A18},{0xFF081018,0xFF2A5A78},
@@ -523,7 +548,16 @@ public class MainActivity extends Activity {
             p.setStyle(Paint.Style.FILL); p.setColor(col); c.drawText(s, xx, y, p);
         }
 
-        static void person(Canvas c, Paint p, float x, float y, float s, int i) { pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false); }
+        static void person(Canvas c, Paint p, float x, float y, float s, int i) {
+            if (i == 0 && TT_BITMAP != null) {
+                int frame = ttMode == 1
+                        ? 1 + ((int) (System.currentTimeMillis() / 180L) & 1)
+                        : (ttMode == 2 ? 3 : (ttMode == 3 ? 4 : 0));
+                drawTT(c, p, x, y, s, frame);
+                return;
+            }
+            pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false);
+        }
 
         // (x, y) = chân. ang/len = góc và độ dài cần. lean nghiêng người, crouch ngồi xổm, armUp giơ tay, flex bắp tay, yell hét
         static void pose(Canvas c, Paint p, float x, float y, float s, int i, float ang, float len, float lean, float crouch, float armUp, float flex, boolean yell) {
