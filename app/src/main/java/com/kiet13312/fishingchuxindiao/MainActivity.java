@@ -447,9 +447,25 @@ public class MainActivity extends Activity {
                     : ((Math.abs(jx) > .1f || Math.abs(jy) > .1f) ? 1 : 0);
             for (int i = 2; i >= 0; i--) {
                 float x = w * px[i], y = h * py[i];
+                float bend = (phase == 2 ? Math.min(1f, ten / 100f) : 0f);
+                c.save();
+                c.rotate(-bend * 13f, x, y);
                 Fx.person(c, p, x, y, u * .8f, team[i]);
+                c.restore();
                 tx(c, CH[team[i]], x, y - 104 * u, 10, 0xFFFFFFFF, true);
-                if (phase > 0) chain(c, x + 68 * u, y - 132 * u, fx, fy + i * 6 * u);
+                if (phase > 0) {
+                    float pull = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
+                    float sx = x + 68 * u, sy = y - 132 * u;
+                    float mx = (sx + fx) * .5f;
+                    float my = (sy + fy + i * 6 * u) * .5f - pull * 55 * u;
+                    p.setStyle(Paint.Style.STROKE);
+                    p.setStrokeWidth((1.5f + pull * 2.5f) * u);
+                    p.setColor(0xFFDCE6EA);
+                    path.reset(); path.moveTo(sx, sy);
+                    path.quadTo(mx, my, fx, fy + i * 6 * u);
+                    c.drawPath(path, p);
+                    p.setStyle(Paint.Style.FILL);
+                }
             }
             if (phase == 1) { p.setColor(0xFFE5413A); c.drawCircle(fx, fy, 7 * u, p); }
             if (phase == 2) {
