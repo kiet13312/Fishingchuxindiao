@@ -53,10 +53,10 @@ afterEvaluate {
                 )
             }
 
-            if (!s.contains("initTT();")) {
+            if (!s.contains("Fx.initTT();")) {
                 s = s.replace(
                         'err = sp.getString("crash", null);',
-                        'initTT();\n            err = sp.getString("crash", null);'
+                        'Fx.initTT();\n            err = sp.getString("crash", null);'
                 )
             }
 
