@@ -11,3 +11,80 @@ android {
         versionName '2.0'
     }
 }
+
+/*
+ * Bản thân nhân vật Trương Tinh dùng đúng asset tách từ ảnh gốc người dùng cung cấp.
+ * Patch ở preBuild chỉ thay renderer cũ của Fx.person và chọn frame theo trạng thái:
+ * 0 đứng, 1 đi bộ, 2 đứng câu, 3 kéo cá.
+ */
+afterEvaluate {
+    tasks.named("preBuild").configure {
+        doLast {
+            def srcFile = file("../app/src/main/java/com/kiet13312/fishingchuxindiao/MainActivity.java")
+            def s = srcFile.getText("UTF-8")
+
+            s = s.replace(
+                    'import android.graphics.Canvas;',
+                    'import android.graphics.Canvas;\nimport android.graphics.Bitmap;\nimport android.graphics.Rect;\nimport android.graphics.RectF;'
+            )
+            s = s.replace('static final String[] CH = {"Trương Tiểu",', 'static final String[] CH = {"Trương Tinh",')
+
+            if (!s.contains("static Bitmap TT_BITMAP")) {
+                s = s.replace(
+                        'static final Path path = new Path();',
+                        '''static final Path path = new Path();
+        static Bitmap TT_BITMAP;
+        static int ttMode = 0;
+
+        static void initTT() {
+            if (TT_BITMAP == null) TT_BITMAP = TruongTinhAsset.load();
+        }
+
+        static void drawTT(Canvas c, Paint p, float x, float y, float s, int frame) {
+            if (TT_BITMAP == null) return;
+            frame = Math.max(0, Math.min(4, frame));
+            Rect src = new Rect(frame * 60, 0, frame * 60 + 60, 100);
+            float dh = 160f * s, dw = 96f * s;
+            p.setFilterBitmap(true);
+            c.drawBitmap(TT_BITMAP, src,
+                    new RectF(x - dw / 2f, y - dh, x + dw / 2f, y), p);
+            p.setFilterBitmap(false);
+        }'''
+                )
+            }
+
+            if (!s.contains("initTT();")) {
+                s = s.replace(
+                        'err = sp.getString("crash", null);',
+                        'initTT();\n            err = sp.getString("crash", null);'
+                )
+            }
+
+            s = s.replace(
+                    'static void person(Canvas c, Paint p, float x, float y, float s, int i) { pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false); }',
+                    '''static void person(Canvas c, Paint p, float x, float y, float s, int i) {
+            if (i == 0 && TT_BITMAP != null) {
+                int frame = ttMode == 1
+                        ? 1 + ((int) (System.currentTimeMillis() / 180L) & 1)
+                        : (ttMode == 2 ? 3 : (ttMode == 3 ? 4 : 0));
+                drawTT(c, p, x, y, s, frame);
+                return;
+            }
+            pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false);
+        }'''
+            )
+
+            if (!s.contains('Fx.ttMode = phase == 2')) {
+                s = s.replace(
+                        'for (int i = 2; i >= 0; i--) {',
+                        '''Fx.ttMode = phase == 2
+                    ? (reel ? 3 : 2)
+                    : ((Math.abs(jx) > .1f || Math.abs(jy) > .1f) ? 1 : 0);
+            for (int i = 2; i >= 0; i--) {'''
+                )
+            }
+
+            srcFile.setText(s, "UTF-8")
+        }
+    }
+}
