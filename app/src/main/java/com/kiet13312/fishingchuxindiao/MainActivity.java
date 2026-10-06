@@ -14,6 +14,10 @@ import android.graphics.Shader;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.MediaPlayer;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.widget.EditText;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,6 +31,45 @@ import java.util.Random;
 // Toàn bộ game nằm trong file này (GameView, Fx hiệu ứng chiêu, Snd âm thanh). Các file GameView.java, Fx.java, Snd.java cũ có thể xóa.
 public class MainActivity extends Activity {
     GameView g;
+    MediaPlayer lobbyMusic;
+    static final String LOBBY_MUSIC =
+            "https://p.scdn.co/mp3-preview/3be77ad3af7f526344fe2c8da4112524b75e6bc1.mp3";
+
+    void startLobbyMusic() {
+        if (lobbyMusic != null) return;
+        try {
+            lobbyMusic = new MediaPlayer();
+            lobbyMusic.setAudioStreamType(AudioManager.STREAM_MUSIC);
+            lobbyMusic.setLooping(true);
+            lobbyMusic.setVolume(0.72f, 0.72f);
+            lobbyMusic.setDataSource(LOBBY_MUSIC);
+            lobbyMusic.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override public void onPrepared(MediaPlayer mp) {
+                    try { mp.start(); } catch (Throwable ignored) { }
+                }
+            });
+            lobbyMusic.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+                @Override public boolean onError(MediaPlayer mp, int what, int extra) {
+                    stopLobbyMusic();
+                    return true;
+                }
+            });
+            lobbyMusic.prepareAsync();
+        } catch (Throwable e) {
+            stopLobbyMusic();
+        }
+    }
+
+    void stopLobbyMusic() {
+        try {
+            if (lobbyMusic != null) {
+                if (lobbyMusic.isPlaying()) lobbyMusic.stop();
+                lobbyMusic.reset();
+                lobbyMusic.release();
+            }
+        } catch (Throwable ignored) { }
+        lobbyMusic = null;
+    }
 
     static String trace(Throwable e) {
         StringWriter sw = new StringWriter();
@@ -50,7 +93,16 @@ public class MainActivity extends Activity {
         setContentView(g);
     }
 
-    @Override protected void onPause() { super.onPause(); if (g != null) g.save(); }
+    @Override protected void onPause() {
+        super.onPause();
+        stopLobbyMusic();
+        if (g != null) g.save();
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (g != null && g.scr == GameView.LOBBY) startLobbyMusic();
+    }
 
 
 
@@ -85,6 +137,10 @@ public class MainActivity extends Activity {
         float hp = 1, hpMax = 1, dist, maxLine = 40, ten, st = 150, u = 1, t, jx, jy, fxDmg, hitD, zoom = 1, lx = .34f, ly = .88f;
         float[] cd = new float[18], px = {.34f, .26f, .18f}, py = {.88f, .88f, .88f};
         boolean reel, spot, gift, fxSnd;
+        // Debug/admin: vô hạn tiền + thể lực; có thể chỉnh HP/khối lượng cá.
+        boolean adminInfMoney = true, adminInfStamina = true;
+        long adminFishHp = -1L;
+        int adminFishKg = -1;
         String msg = "", err;
 
         GameView(Context c) {
@@ -117,6 +173,57 @@ public class MainActivity extends Activity {
         boolean inTeam(int c) { return team[0] == c || team[1] == c || team[2] == c; }
         void say(String s) { msg = s; msgT = System.currentTimeMillis() + 2500; }
 
+        void adminDialog() {
+            final EditText in = new EditText(getContext());
+            in.setSingleLine(true);
+            in.setHint("/help");
+            new AlertDialog.Builder(getContext())
+                    .setTitle("ADMIN COMMAND")
+                    .setMessage("/money inf  |  /stamina inf\n/hp 100000  |  /kg 500000\n/resetfish")
+                    .setView(in)
+                    .setNegativeButton("Hủy", null)
+                    .setPositiveButton("Chạy", new DialogInterface.OnClickListener() {
+                        @Override public void onClick(DialogInterface d, int w) {
+                            runAdmin(in.getText().toString());
+                        }
+                    }).show();
+        }
+
+        void runAdmin(String raw) {
+            String z = raw == null ? "" : raw.trim().toLowerCase(java.util.Locale.US);
+            try {
+                if (z.equals("/money inf") || z.equals("money inf")) {
+                    adminInfMoney = true; say("ADMIN: tiền vô hạn");
+                } else if (z.startsWith("/money ") || z.startsWith("money ")) {
+                    adminInfMoney = false; money = Long.parseLong(z.replace("/money ","").replace("money ","").trim());
+                    say("ADMIN: tiền = $" + money);
+                } else if (z.equals("/stamina inf") || z.equals("/stamina infinity") || z.equals("stamina inf")) {
+                    adminInfStamina = true; st = maxSt(); say("ADMIN: thể lực vô hạn");
+                } else if (z.startsWith("/stamina ") || z.startsWith("stamina ")) {
+                    adminInfStamina = false; st = Math.max(0, Math.min(maxSt(),
+                            Float.parseFloat(z.replace("/stamina ","").replace("stamina ","").trim())));
+                    say("ADMIN: thể lực đã chỉnh");
+                } else if (z.startsWith("/hp ") || z.startsWith("hp ")) {
+                    adminFishHp = Math.max(1L, Long.parseLong(z.replace("/hp ","").replace("hp ","").trim()));
+                    if (phase == 2) { hpMax = adminFishHp; hp = adminFishHp; }
+                    say("ADMIN: HP cá = " + adminFishHp);
+                } else if (z.startsWith("/kg ") || z.startsWith("/size ") || z.startsWith("kg ") || z.startsWith("size ")) {
+                    String q = z.replace("/kg ","").replace("/size ","").replace("kg ","").replace("size ","").trim();
+                    adminFishKg = Math.max(1, Integer.parseInt(q));
+                    if (phase > 0) kg = adminFishKg;
+                    say("ADMIN: cá = " + adminFishKg + " lạng");
+                } else if (z.equals("/resetfish") || z.equals("resetfish")) {
+                    adminFishHp = -1L; adminFishKg = -1;
+                    say("ADMIN: trả cá về ngẫu nhiên");
+                } else {
+                    say("ADMIN: /money inf /stamina inf /hp N /kg N");
+                }
+            } catch (Throwable e) {
+                say("ADMIN: lệnh sai");
+            }
+            save();
+        }
+
         void win() {
             phase = 0; reel = false;
             long v = (long) kg * (2 + map);
@@ -127,8 +234,8 @@ public class MainActivity extends Activity {
         void skill(int slot) {
             int i = eq[slot];
             if (i < 0) return;
-            if (phase != 2 || cd[i] > 0 || st < SC[i]) { say("Chưa dùng được chiêu"); return; }
-            st -= SC[i]; cd[i] = 8;
+            if (phase != 2 || cd[i] > 0 || (!adminInfStamina && st < SC[i])) { say("Chưa dùng được chiêu"); return; }
+            if (!adminInfStamina) st -= SC[i]; cd[i] = 8;
             float d = pw() * sm(i);
             if (i % 3 == 0) dist = Math.max(0, dist - 8);
             if (i % 3 == 2) ten = Math.max(5, ten - 30);
@@ -140,12 +247,14 @@ public class MainActivity extends Activity {
         void act(int id, int pt) {
             long now = System.currentTimeMillis();
             if (id == 160) err = null;
+            else if (id == 170) adminDialog();
             else if (id == 1) {
                 if (phase == 0) {
                     if (baits <= 0) { say("Hết mồi, mua ở Cần câu & mồi"); return; }
                     baits--;
-                    kg = (int) (MW[map] * (.85f + rnd.nextFloat() * .3f));
-                    hpMax = hp = 112f * (float) Math.pow(kg, .55);
+                    kg = adminFishKg > 0 ? adminFishKg : (int) (MW[map] * (.85f + rnd.nextFloat() * .3f));
+                    hpMax = adminFishHp > 0 ? adminFishHp : 112f * (float) Math.pow(kg, .55);
+                    hp = hpMax;
                     maxLine = 40 + rod * 15 + map * 6; dist = maxLine * .7f; ten = 20;
                     phase = 1; spot = true; bite = now + 1200 + rnd.nextInt(2500);
                     say("Đã thả lưới..."); Snd.play(Snd.CAST);
@@ -154,11 +263,11 @@ public class MainActivity extends Activity {
             else if (id >= 10 && id < 13) skill(id - 10);
             else if (id >= 300 && id < 308) {
                 int i = id - 300;
-                if (i <= rod) rod = i; else if (money >= RC[i]) { money -= RC[i]; rod = i; } else say("Không đủ tiền");
+                if (i <= rod) rod = i; else if (adminInfMoney || money >= RC[i]) { if (!adminInfMoney) money -= RC[i]; rod = i; } else say("Không đủ tiền");
             } else if (id >= 20 && id < 38) {
                 int i = id - 20;
                 long cost = uc(i);
-                if (sk[i] >= 100) say("Đã mãn cấp"); else if (money >= cost) { money -= cost; sk[i]++; } else say("Không đủ tiền");
+                if (sk[i] >= 100) say("Đã mãn cấp"); else if (adminInfMoney || money >= cost) { if (!adminInfMoney) money -= cost; sk[i]++; } else say("Không đủ tiền");
             } else if (id == 40) { if (money >= 100) { money -= 100; baits += 10; } else say("Không đủ tiền"); }
             else if (id == 41 || id == 63) { if (invN == 0) say("Kho đang trống"); else { money += inv; say("Đã bán cá +$" + inv); inv = 0; invN = 0; } }
             else if (id == 150) scr = LOBBY;
@@ -223,7 +332,7 @@ public class MainActivity extends Activity {
             }
             zoom += ((phase == 2 ? 1.22f : 1f) - zoom) * Math.min(1f, 3 * dt);
             for (int i = 0; i < 18; i++) cd[i] = Math.max(0, cd[i] - dt);
-            st = Math.min(maxSt(), st + (phase == 2 ? 4 : 8) * dt);
+            st = adminInfStamina ? maxSt() : Math.min(maxSt(), st + (phase == 2 ? 4 : 8) * dt);
             if (phase == 1 && now >= bite) { phase = 2; dist = maxLine * .7f; ten = 30; say("CÁ CẮN! Giữ CO LẠI ĐÂY"); Snd.play(Snd.BITE); }
             if (phase != 2) return;
             float s = (.8f + Math.min(3f, kg / 60000f)) * (1 + .2f * (float) Math.sin(t * 6));
@@ -282,8 +391,8 @@ public class MainActivity extends Activity {
             int w = getWidth(), h = getHeight();
             u = h / 540f; t += dt; hit.clear();
             p.setStyle(Paint.Style.FILL); p.setColor(0xFF0E1A22); c.drawRect(0, 0, w, h, p);
-            if (scr == FISH) { update(dt, now); fishing(c, w, h, now); }
-            else if (scr == LOBBY) lobby(c, w, h);
+            if (scr == FISH) { stopLobbyMusic(); update(dt, now); fishing(c, w, h, now); }
+            else if (scr == LOBBY) { startLobbyMusic(); lobby(c, w, h); }
             else if (scr == CHAR) chars(c, w, h);
             else if (scr == MAPS) maps(c, w, h);
             else if (scr == TALK) talk(c, w, h, now);
@@ -306,7 +415,7 @@ public class MainActivity extends Activity {
             bar(c, 70 * u, 62 * u, 250 * u, 74 * u, st / maxSt(), 0xFFE6463C);
             tx(c, (int) st + "/" + maxSt(), 74 * u, 72 * u, 9, 0xFFFFFFFF, false);
             tx(c, "Tổng trọng cá câu được: " + inv + " lạng", 22 * u, 96 * u, 10, 0xFFF2B931, false);
-            tx(c, "Đồng cấp VIP  $" + money, w / 2f, 28 * u, 15, 0xFFF2B931, true);
+            tx(c, adminInfMoney ? "Đồng cấp VIP  $∞" : "Đồng cấp VIP  $" + money, w / 2f, 28 * u, 15, 0xFFF2B931, true);
             String[] mn = {"Người bạn câu cá", "Cách đánh cá", "Cây cần", "Quán cá"};
             for (int i = 0; i < 4; i++) btn(c, 60 + i, mn[i], 10 * u, 135 * u + i * 52 * u, 170 * u, 179 * u + i * 52 * u, phase == 0);
         }
@@ -388,7 +497,7 @@ public class MainActivity extends Activity {
             btn(c, 150, "‹ Quay lại trang chủ", 10 * u, 10 * u, 170 * u, 52 * u, false);
             btn(c, 130, "Phương pháp câu cá", 10 * u, 70 * u, 170 * u, 116 * u, tab == 0);
             btn(c, 131, "Cần câu & mồi", 10 * u, 126 * u, 170 * u, 172 * u, tab == 1);
-            tx(c, "$" + money, 190 * u, 40 * u, 16, 0xFFF2B931, false);
+            tx(c, adminInfMoney ? "$∞" : "$" + money, 190 * u, 40 * u, 16, 0xFFF2B931, false);
             if (tab == 0) {
                 float cw = (w - 205 * u) / 6f;
                 for (int i = 0; i < 18; i++) {
@@ -504,7 +613,8 @@ public class MainActivity extends Activity {
                 btn(c, 10 + i, e < 0 ? "(trống)" : SKN[e].length() > 14 ? SKN[e].substring(0, 14) + "." : SKN[e], l, h - 95 * u, l + 135 * u, h - 35 * u, e >= 0 && phase == 2 && cd[e] <= 0 && st >= SC[e]);
                 if (e >= 0) tx(c, cd[e] > 0 ? (int) Math.ceil(cd[e]) + "s" : "-" + SC[e], l + 67 * u, h - 40 * u, 10, 0xFF1D2B33, true);
             }
-            if (phase == 0) btn(c, 3, "Về sảnh", w - 190 * u, 10 * u, w - 10 * u, 52 * u, false);
+            if (phase == 0) btn(c, 3, "Về sảnh", w - 290 * u, 10 * u, w - 120 * u, 52 * u, false);
+            btn(c, 170, "ADMIN", w - 110 * u, 10 * u, w - 10 * u, 52 * u, true);
             box(c, w - 70 * u, h * .26f - 26 * u, w - 10 * u, h * .26f, 0xFF32495A);
             tx(c, "Trang bị", w - 40 * u, h * .26f - 8 * u, 10, 0xFFFFFFFF, true);
             float gx = w - 40 * u, gt = h * .30f, gb = h * .66f, f = phase == 2 ? Math.min(1f, dist / maxLine) : 0f;
