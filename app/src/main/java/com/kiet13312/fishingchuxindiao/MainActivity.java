@@ -442,19 +442,21 @@ public class MainActivity extends Activity {
             c.scale(zoom, zoom, w * .45f, h * .8f);
             lake(c, w, h);
             float fx = w * (.56f + .36f * (phase == 2 ? dist / maxLine : .55f)), fy = h * (.55f + .03f * (float) Math.sin(t * 1.7f));
-            Fx.ttMode = phase == 2
-                    ? (reel ? 3 : 2)
-                    : ((Math.abs(jx) > .1f || Math.abs(jy) > .1f) ? 1 : 0);
+            boolean moving = Math.abs(jx) > .1f || Math.abs(jy) > .1f;
             for (int i = 2; i >= 0; i--) {
                 float x = w * px[i], y = h * py[i];
-                float bend = (phase == 2 ? Math.min(1f, ten / 100f) : 0f);
-                c.save();
-                c.rotate(-bend * 13f, x, y);
-                Fx.person(c, p, x, y, u * .8f, team[i]);
-                c.restore();
+                float pull = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
+                if (team[i] == 0 && Fx.TT_BITMAP != null) {
+                    Fx.drawTT(c, p, x, y, u * .8f, t, moving, phase == 2, pull * 100f);
+                } else {
+                    float bend = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
+                    c.save();
+                    c.rotate(-bend * 13f, x, y);
+                    Fx.person(c, p, x, y, u * .8f, team[i]);
+                    c.restore();
+                }
                 tx(c, CH[team[i]], x, y - 104 * u, 10, 0xFFFFFFFF, true);
                 if (phase > 0) {
-                    float pull = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
                     float sx = x + 68 * u, sy = y - 132 * u;
                     float mx = (sx + fx) * .5f;
                     float my = (sy + fy + i * 6 * u) * .5f - pull * 55 * u;
@@ -525,22 +527,29 @@ public class MainActivity extends Activity {
         static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
         static final Path path = new Path();
         static Bitmap TT_BITMAP;
-        static int ttMode = 0;
-
         static void initTT() {
             if (TT_BITMAP == null) TT_BITMAP = TruongTinhAsset.load();
         }
 
-        static void drawTT(Canvas c, Paint p, float x, float y, float s, int frame) {
+        // Chỉ dùng 1 ảnh Trương Tinh đã lắp sẵn, không đổi frame nữa.
+        // Chuyển động kiểu R6: nghiêng thân, nhấc nhẹ cả người, lặp bước.
+        static void drawTT(Canvas c, Paint p, float x, float y, float s,
+                           float time, boolean moving, boolean fishing, float tension) {
             if (TT_BITMAP == null) return;
-            frame = Math.max(0, Math.min(4, frame));
-            Rect src = new Rect(frame * 60, 0, frame * 60 + 60, 100);
+            float bob = moving ? Math.abs((float)Math.sin(time * 7.2f)) * 3.5f * s : 0f;
+            float lean = moving ? (float)Math.sin(time * 7.2f) * 4.5f : 0f;
+            if (fishing) lean -= Math.min(7f, tension * .07f);
+
+            c.save();
+            c.rotate(lean, x, y);
+            Rect src = new Rect(0, 0, 60, 100);
             float dh = 160f * s;
             float dw = 96f * s;
             p.setFilterBitmap(true);
             c.drawBitmap(TT_BITMAP, src,
-                    new RectF(x - dw / 2f, y - dh, x + dw / 2f, y), p);
+                    new RectF(x - dw/2f, y - dh - bob, x + dw/2f, y - bob), p);
             p.setFilterBitmap(false);
+            c.restore();
         }
         static final int[][] BG = {
                 {0xFF6EC6F0,0xFFE8F6D8},{0xFFEDEDED,0xFF9A9AA8},{0xFF4A2A6A,0xFFE8903A},{0xFF2A9AB0,0xFFBFEFF0},
@@ -566,10 +575,7 @@ public class MainActivity extends Activity {
 
         static void person(Canvas c, Paint p, float x, float y, float s, int i) {
             if (i == 0 && TT_BITMAP != null) {
-                int frame = ttMode == 1
-                        ? 1 + ((int) (System.currentTimeMillis() / 180L) & 1)
-                        : (ttMode == 2 ? 3 : (ttMode == 3 ? 4 : 0));
-                drawTT(c, p, x, y, s, frame);
+                drawTT(c, p, x, y, s, 0f, false, false, 0f);
                 return;
             }
             pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false);
