@@ -391,8 +391,8 @@ public class MainActivity extends Activity {
             int w = getWidth(), h = getHeight();
             u = h / 540f; t += dt; hit.clear();
             p.setStyle(Paint.Style.FILL); p.setColor(0xFF0E1A22); c.drawRect(0, 0, w, h, p);
-            if (scr == FISH) { stopLobbyMusic(); update(dt, now); fishing(c, w, h, now); }
-            else if (scr == LOBBY) { startLobbyMusic(); lobby(c, w, h); }
+            if (scr == FISH) { ((MainActivity)getContext()).stopLobbyMusic(); update(dt, now); fishing(c, w, h, now); }
+            else if (scr == LOBBY) { ((MainActivity)getContext()).startLobbyMusic(); lobby(c, w, h); }
             else if (scr == CHAR) chars(c, w, h);
             else if (scr == MAPS) maps(c, w, h);
             else if (scr == TALK) talk(c, w, h, now);
@@ -556,7 +556,7 @@ public class MainActivity extends Activity {
                 float x = w * px[i], y = h * py[i];
                 float pull = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
                 if (team[i] == 0 && Fx.TT_BITMAP != null) {
-                    Fx.drawTT(c, p, x, y, u * .8f, t, moving, phase == 2, pull * 100f);
+                    Fx.drawR6(c, p, x, y, u * .8f, t, moving, phase == 2, pull * 100f);
                 } else {
                     float bend = phase == 2 ? Math.min(1f, ten / 100f) : 0f;
                     c.save();
@@ -566,7 +566,12 @@ public class MainActivity extends Activity {
                 }
                 tx(c, CH[team[i]], x, y - 104 * u, 10, 0xFFFFFFFF, true);
                 if (phase > 0) {
-                    float sx = x + 68 * u, sy = y - 132 * u;
+                    float sx = (team[i] == 0 && Fx.TT_BITMAP != null)
+                            ? Fx.r6RodTipX(x,y,u*.8f,t,moving,phase==2,pull*100f)
+                            : x + 68*u;
+                    float sy = (team[i] == 0 && Fx.TT_BITMAP != null)
+                            ? Fx.r6RodTipY(x,y,u*.8f,t,moving,phase==2,pull*100f)
+                            : y - 132*u;
                     float mx = (sx + fx) * .5f;
                     float my = (sy + fy + i * 6 * u) * .5f - pull * 55 * u;
                     p.setStyle(Paint.Style.STROKE);
@@ -637,29 +642,113 @@ public class MainActivity extends Activity {
         static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
         static final Path path = new Path();
         static Bitmap TT_BITMAP;
+        // Crops from the supplied character atlas (123 x 116). Each limb is
+        // drawn independently so its pivot follows an R6-style joint.
+        static final Rect R6_HEAD  = new Rect(1, 1, 59, 64);
+        static final Rect R6_TORSO = new Rect(61, 0, 93, 47);
+        static final Rect R6_LARM  = new Rect(1, 66, 20, 107);
+        static final Rect R6_RARM  = new Rect(23, 66, 39, 105);
+        static final Rect R6_LLEG  = new Rect(42, 66, 58, 98);
+        static final Rect R6_RLEG  = new Rect(60, 66, 76, 98);
+
         static void initTT() {
-            if (TT_BITMAP == null) TT_BITMAP = TruongTinhAsset.load();
+            if (TT_BITMAP == null) TT_BITMAP = TruongTinhPartsAsset.load();
         }
 
-        // Chỉ dùng 1 ảnh Trương Tinh đã lắp sẵn, không đổi frame nữa.
-        // Chuyển động kiểu R6: nghiêng thân, nhấc nhẹ cả người, lặp bước.
-        static void drawTT(Canvas c, Paint p, float x, float y, float s,
-                           float time, boolean moving, boolean fishing, float tension) {
-            if (TT_BITMAP == null) return;
-            float bob = moving ? Math.abs((float)Math.sin(time * 7.2f)) * 3.5f * s : 0f;
-            float lean = moving ? (float)Math.sin(time * 7.2f) * 4.5f : 0f;
-            if (fishing) lean -= Math.min(7f, tension * .07f);
-
+        static void r6Part(Canvas c, Paint p, Rect src, float x, float y, float scale,
+                           float left, float top, float right, float bottom,
+                           float pivotX, float pivotY, float angle) {
             c.save();
-            c.rotate(lean, x, y);
-            Rect src = new Rect(0, 0, 60, 100);
-            float dh = 160f * s;
-            float dw = 96f * s;
+            c.rotate(angle, x + pivotX * scale, y + pivotY * scale);
             p.setFilterBitmap(true);
             c.drawBitmap(TT_BITMAP, src,
-                    new RectF(x - dw/2f, y - dh - bob, x + dw/2f, y - bob), p);
+                    new RectF(x + left * scale, y + top * scale,
+                              x + right * scale, y + bottom * scale), p);
             p.setFilterBitmap(false);
             c.restore();
+        }
+
+        static float r6ArmAngle(float time, boolean moving, boolean fishing, float tension) {
+            if (fishing) return -16f - Math.min(16f, tension * .12f);
+            return moving ? (float)Math.sin(time * 7.2f) * 10f : 0f;
+        }
+
+        static float r6HandLocalX(float angle) {
+            double a = Math.toRadians(angle);
+            float px = 25f, py = -157f, hx = 49f, hy = -82f;
+            float dx = hx - px, dy = hy - py;
+            return px + (float)Math.cos(a) * dx - (float)Math.sin(a) * dy;
+        }
+
+        static float r6HandLocalY(float angle) {
+            double a = Math.toRadians(angle);
+            float px = 25f, py = -157f, hx = 49f, hy = -82f;
+            float dx = hx - px, dy = hy - py;
+            return py + (float)Math.sin(a) * dx + (float)Math.cos(a) * dy;
+        }
+
+        static float r6RodAngle(float time, boolean moving, boolean fishing, float tension) {
+            return -48f + (fishing ? Math.min(24f, tension * .22f) : 0f)
+                    + (moving ? (float)Math.sin(time * 7.2f) * 2f : 0f);
+        }
+
+        static float r6RodTipX(float x, float y, float s, float time,
+                               boolean moving, boolean fishing, float tension) {
+            float q = s * .56f;
+            float angle = r6ArmAngle(time, moving, fishing, tension);
+            float hx = x + r6HandLocalX(angle) * q;
+            double r = Math.toRadians(r6RodAngle(time, moving, fishing, tension));
+            return hx + (float)Math.cos(r) * 100f * q;
+        }
+
+        static float r6RodTipY(float x, float y, float s, float time,
+                               boolean moving, boolean fishing, float tension) {
+            float q = s * .56f;
+            float angle = r6ArmAngle(time, moving, fishing, tension);
+            float hy = y + r6HandLocalY(angle) * q;
+            double r = Math.toRadians(r6RodAngle(time, moving, fishing, tension));
+            return hy + (float)Math.sin(r) * 100f * q;
+        }
+
+        static void drawR6(Canvas c, Paint p, float x, float y, float s,
+                           float time, boolean moving, boolean fishing, float tension) {
+            if (TT_BITMAP == null) return;
+            float q = s * .56f;
+            float walk = moving ? (float)Math.sin(time * 7.2f) : 0f;
+            float bob = moving ? Math.abs(walk) * 2.5f : 0f;
+            float leg = walk * 17f;
+            float body = moving ? walk * 2.5f : 0f;
+            float arm = r6ArmAngle(time, moving, fishing, tension);
+
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(0x33000000);
+            c.drawOval(x - 31*q, y - 3*q, x + 31*q, y + 7*q, p);
+
+            // Back layer: both legs and left arm sit behind the torso.
+            r6Part(c,p,R6_LLEG,x,y,q,-33,-72+bob,-2,-5,-18,-68,leg);
+            r6Part(c,p,R6_RLEG,x,y,q,2,-72+bob,33,-5,17,-68,-leg);
+            r6Part(c,p,R6_LARM,x,y-bob*q,q,-59,-171,-25,-78,-31,-157,
+                    moving ? -walk*10f : (fishing ? 5f : 0f));
+
+            // Main torso; right arm is above the torso but the head covers its shoulder.
+            r6Part(c,p,R6_TORSO,x,y-bob*q,q,-38,-174,38,-64,0,-72,body);
+            r6Part(c,p,R6_RARM,x,y-bob*q,q,22,-171,61,-78,25,-157,arm);
+            r6Part(c,p,R6_HEAD,x,y-bob*q,q,-53,-289,53,-166,0,-164,body*.35f);
+
+            // Fishing rod is attached to the animated right hand.
+            float hx = x + r6HandLocalX(arm) * q;
+            float hy = y - bob*q + r6HandLocalY(arm) * q;
+            float ra = (float)Math.toRadians(r6RodAngle(time,moving,fishing,tension));
+            float tx = hx + (float)Math.cos(ra) * 100f * q;
+            float ty = hy + (float)Math.sin(ra) * 100f * q;
+            p.setStyle(Paint.Style.STROKE);
+            p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeWidth(3.0f*q); p.setColor(0xFF5E452B);
+            c.drawLine(hx,hy,tx,ty,p);
+            p.setStrokeWidth(1.25f*q); p.setColor(0xFFFFE4AD);
+            c.drawLine(hx,hy,tx,ty,p);
+            p.setStrokeCap(Paint.Cap.BUTT);
+            p.setStyle(Paint.Style.FILL);
         }
         static final int[][] BG = {
                 {0xFF6EC6F0,0xFFE8F6D8},{0xFFEDEDED,0xFF9A9AA8},{0xFF4A2A6A,0xFFE8903A},{0xFF2A9AB0,0xFFBFEFF0},
@@ -685,7 +774,7 @@ public class MainActivity extends Activity {
 
         static void person(Canvas c, Paint p, float x, float y, float s, int i) {
             if (i == 0 && TT_BITMAP != null) {
-                drawTT(c, p, x, y, s, 0f, false, false, 0f);
+                drawR6(c, p, x, y, s, 0f, false, false, 0f);
                 return;
             }
             pose(c, p, x, y, s, i, 56.4f, 136f, 0, 0, 0, 0, false);
