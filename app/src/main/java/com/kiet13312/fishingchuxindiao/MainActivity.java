@@ -132,7 +132,7 @@ public class MainActivity extends Activity {
                 "Phi Thiên Vô Cực", "Song Long Xuất Thải", "Tề Thiên Đại Điếu Pháp",
                 "Ga Chống Đè Trứng", "Hoành Tảo Thiên Quân", "Câu Long Quyển Hổ",
                 "Khỉ Chui Trời", "Thiên Đề Đánh Một Gậy", "Thí Thần Điếu",
-                "Nhất Điếu Khai Thiên Môn", "Phá Phủ Trầm Chu", "Sở Tân Câu"};
+                "Nhất Điếu Khai Thiên Môn", "Phá Phủ Trầm Chu", "Xe Kéo"};
         static final int[] SC = {40,45,55,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200};
         static final String TALK_TXT = "Thằng cá độ đáng ghét, dám bắt cá của tôi ở bên kia, hôm nay dù anh là ai thì cũng không dễ anh chạy trốn được.";
 
@@ -1099,7 +1099,27 @@ public class MainActivity extends Activity {
                 case 14: { pose(c,p,cx,cy,S,who,35,160,0,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(5*u);p.setColor(al(MAIN[sk],.9f)); for(int i=0;i<6;i++){float r=(55+i*28+80*k)*u;c.drawCircle(fx,fy,r,p);} break; }
                 case 15: { pose(c,p,cx,cy,S,who,-10,175,0,0,1,0,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(24*u);p.setColor(al(MAIN[sk],.65f));c.drawLine(fx,0,fx,fy,p);p.setStrokeWidth(5*u);p.setColor(0xFFFFFFFF);c.drawLine(fx,0,fx,fy,p); break; }
                 case 16: { pose(c,p,cx,cy,S,who,25,180,-.2f,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(22*u);p.setColor(al(MAIN[sk],.65f));c.drawLine(cx+120*S,cy-90*S,fx,fy,p); cracks(c,p,u,fx,fy,seg(k,.35f,.65f)); break; }
-                case 17: { pose(c,p,cx,cy,S,who,45,170,0,0,1,1,true); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(9*u);p.setColor(al(MAIN[sk],.85f)); for(int i=0;i<9;i++){float r=(45+i*24+120*k)*u;c.drawOval(fx-r,fy-r*.5f,fx+r,fy+r*.5f,p);} if(k>.35f)c.drawLine(cx+80*S,cy-100*S,fx,fy,p); break; }
+                case 17: { // Sở Tâm's Xe Kéo: visible tractor and trailer, with the rod mounted behind.
+                    float bx=cx-95*u, by=cy-6*u;
+                    p.setStyle(Paint.Style.FILL);
+                    p.setColor(0xFF6B7883); c.drawRoundRect(bx-70*u,by-55*u,bx+4*u,by-17*u,7*u,7*u,p);
+                    p.setColor(0xFF3B8C4B); c.drawRoundRect(bx-8*u,by-65*u,bx+195*u,by-6*u,11*u,11*u,p);
+                    p.setColor(0xFF275B32); c.drawRect(bx+110*u,by-108*u,bx+168*u,by-61*u,p);
+                    p.setColor(0xFF9DD7E8); c.drawRect(bx+118*u,by-101*u,bx+160*u,by-70*u,p);
+                    p.setColor(0xFF20242A); c.drawCircle(bx+27*u,by+7*u,34*u,p); c.drawCircle(bx+162*u,by+7*u,23*u,p);
+                    p.setColor(0xFF9BA3A9); c.drawCircle(bx+27*u,by+7*u,16*u,p); c.drawCircle(bx+162*u,by+7*u,10*u,p);
+                    p.setColor(0xFFE7C23A); c.drawRoundRect(bx+178*u,by-32*u,bx+210*u,by-9*u,4*u,4*u,p);
+                    pose(c,p,cx+12*u,cy-54*u,S*.62f,who,18f,120f,-.05f,0,.15f,0,false);
+                    float rodX=bx-52*u, rodY=by-66*u, rodX2=rodX-90*u, rodY2=rodY-65*u;
+                    p.setStyle(Paint.Style.STROKE); p.setStrokeCap(Paint.Cap.ROUND);
+                    p.setStrokeWidth(7*u); p.setColor(0xFF493824); c.drawLine(rodX,rodY,rodX2,rodY2,p);
+                    p.setStrokeWidth(2*u); p.setColor(0xFFFFE7B0); c.drawLine(rodX,rodY,rodX2,rodY2,p);
+                    p.setStrokeWidth(4*u); p.setColor(0xFF9FE9FF);
+                    path.reset(); path.moveTo(rodX2,rodY2); path.quadTo((rodX2+fx)*.5f,(rodY2+fy)*.5f-65*u,fx,fy); c.drawPath(path,p);
+                    p.setStrokeCap(Paint.Cap.BUTT);
+                    if(k>.38f){float q=seg(k,.38f,.72f); p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(13*u);p.setColor(al(0xFFFFD34A,1-q));c.drawOval(fx-45*u,fy-24*u,fx+45*u,fy+24*u,p);}
+                    impact(c,p,u,fx,fy,im,MAIN[sk],dmg);
+                    break; }
                 default: { // Phá ông chìm thuyền: giơ cần gọi rồng, rồng phun tia
                     pose(c, p, cx, cy, S, who, 45f, 160f, 0, 0, 1f, 0, true);
                     float dh = seg(k, .15f, .45f), hx = w * 1.1f + (fx + 120 * u - w * 1.1f) * dh, hy = fy - 30 * u;
