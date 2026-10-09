@@ -903,9 +903,10 @@ public class MainActivity extends Activity {
                           float ang, float len, float lean, float crouch, float armUp,
                           float flex, boolean yell) {
             int ci = Math.floorMod(i, BODY.length);
-            float L = 26f * (1f - .5f * crouch), torso = L + 50f, headY = torso + 16f, sh = torso - 8f;
-            float hx = x + (10f - 8f * armUp) * s;
-            float hy = y - (sh - 16f + armUp * 45f) * s;
+            // Stronger chibi proportions: oversized head, compact torso and short legs.
+            float L = 19f * (1f - .45f * crouch), torso = L + 39f, headY = torso + 14f, sh = torso - 5f;
+            float hx = x + (9f - 7f * armUp) * s;
+            float hy = y - (sh - 10f + armUp * 34f) * s;
             float faceY = y - headY * s;
             c.save();
             c.rotate(lean * 30f, x, y);
@@ -1005,14 +1006,14 @@ public class MainActivity extends Activity {
 
             // Face and ears.
             p.setStyle(Paint.Style.FILL); p.setColor(FACE[ci]);
-            c.drawOval(x-17*s,faceY-15*s,x+17*s,faceY+17*s,p);
-            c.drawCircle(x-15*s,faceY+1*s,4*s,p); c.drawCircle(x+15*s,faceY+1*s,4*s,p);
-            p.setColor(0xFF3A2522);
-            c.drawOval(x-8*s,faceY-3*s,x-4*s,faceY+2*s,p);
-            c.drawOval(x+4*s,faceY-3*s,x+8*s,faceY+2*s,p);
-            p.setColor(0xFF352328); p.setStrokeWidth(2*s);
-            c.drawLine(x-10*s,faceY-7*s,x-4*s,faceY-8*s,p);
-            c.drawLine(x+4*s,faceY-8*s,x+10*s,faceY-7*s,p);
+            c.drawOval(x-20*s,faceY-18*s,x+20*s,faceY+18*s,p);
+            c.drawCircle(x-18*s,faceY+1*s,4.5f*s,p); c.drawCircle(x+18*s,faceY+1*s,4.5f*s,p);
+            p.setColor(0xFF2D2226);
+            c.drawOval(x-8*s,faceY-4*s,x-3*s,faceY+3*s,p);
+            c.drawOval(x+3*s,faceY-4*s,x+8*s,faceY+3*s,p);
+            p.setColor(0xFF352328); p.setStrokeWidth(2.2f*s);
+            c.drawLine(x-11*s,faceY-8*s,x-3*s,faceY-9*s,p);
+            c.drawLine(x+3*s,faceY-9*s,x+11*s,faceY-8*s,p);
             if (ci == 4 || ci == 10 || ci == 12 || ci == 13 || ci == 17) {
                 p.setColor(HAIR[ci]);
                 path.reset(); path.moveTo(x-10*s,faceY+5*s); path.lineTo(x,faceY+14*s);
@@ -1029,15 +1030,15 @@ public class MainActivity extends Activity {
             p.setColor(HAIR[ci]);
             switch (ci) {
                 case 1: case 2: case 3: case 11: case 14: case 15:
-                    c.drawOval(x-14*s,faceY-17*s,x+14*s,faceY-1*s,p);
-                    path.reset(); path.moveTo(x-14*s,faceY-9*s);
-                    path.lineTo(x-7*s,faceY-25*s); path.lineTo(x-2*s,faceY-13*s);
-                    path.lineTo(x+5*s,faceY-27*s); path.lineTo(x+10*s,faceY-12*s);
-                    path.lineTo(x+15*s,faceY-7*s); path.close(); c.drawPath(path,p); break;
+                    c.drawOval(x-17*s,faceY-19*s,x+17*s,faceY+1*s,p);
+                    path.reset(); path.moveTo(x-18*s,faceY-9*s);
+                    path.lineTo(x-10*s,faceY-28*s); path.lineTo(x-4*s,faceY-16*s);
+                    path.lineTo(x+5*s,faceY-30*s); path.lineTo(x+11*s,faceY-15*s);
+                    path.lineTo(x+18*s,faceY-8*s); path.close(); c.drawPath(path,p); break;
                 case 4: case 10: case 12: case 13: case 17:
-                    c.drawOval(x-14*s,faceY-19*s,x+14*s,faceY+2*s,p);
-                    c.drawOval(x-15*s,faceY-10*s,x-7*s,faceY+14*s,p);
-                    c.drawOval(x+7*s,faceY-10*s,x+15*s,faceY+14*s,p); break;
+                    c.drawOval(x-17*s,faceY-22*s,x+17*s,faceY+3*s,p);
+                    c.drawOval(x-18*s,faceY-12*s,x-8*s,faceY+16*s,p);
+                    c.drawOval(x+8*s,faceY-12*s,x+18*s,faceY+16*s,p); break;
                 case 5: case 9:
                     c.drawOval(x-14*s,faceY-20*s,x+14*s,faceY-2*s,p);
                     p.setColor(ACCENT[ci]);
