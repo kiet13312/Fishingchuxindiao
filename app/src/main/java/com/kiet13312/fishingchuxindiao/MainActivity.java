@@ -143,7 +143,7 @@ public class MainActivity extends Activity {
         final Random rnd = new Random();
         final SharedPreferences sp;
         final ArrayList<float[]> hit = new ArrayList<float[]>();
-        int scr, map, sel, tab, rod, charPage, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, fxChar, unl = 0x3FF, eqN;
+        int scr, map, sel, tab, rod, charPage, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, fxChar, unl = 0x7FFFF, eqN;
         int[] sk = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, team = {0, 1, 2}, eq = {0, 1, -1};
         long money = 500, xp, inv, bite, msgT, fxT, talkT, hitT, lastMs = System.currentTimeMillis();
         long totalWeightCaught;
@@ -163,7 +163,7 @@ public class MainActivity extends Activity {
             sp = c.getSharedPreferences("fish5", 0);
             Fx.initTT();
             money = sp.getLong("m", 500); xp = sp.getLong("x", 0); rod = sp.getInt("r", 0); baits = sp.getInt("b", 20);
-            inv = sp.getLong("i", 0); invN = sp.getInt("n", 0); unl = sp.getInt("u", 0x3FF); gift = sp.getBoolean("g", false);
+            inv = sp.getLong("i", 0); invN = sp.getInt("n", 0); unl = sp.getInt("u", 0x7FFFF); if (unl == 0x3FF) unl = 0x7FFFF; gift = sp.getBoolean("g", false);
             totalCatches = sp.getInt("catchTotal", 0);
             totalWeightCaught = sp.getLong("weightTotal", 0L);
             totalSkills = sp.getInt("skillsTotal", 0);
