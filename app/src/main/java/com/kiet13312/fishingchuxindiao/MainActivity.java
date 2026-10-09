@@ -775,6 +775,7 @@ public class MainActivity extends Activity {
                            float pivotX, float pivotY, float angle) {
             c.save();
             c.rotate(angle, x + pivotX * scale, y + pivotY * scale);
+            p.setShader(null);
             p.setColor(0xFFFFFFFF);
             p.setAlpha(255);
             p.setFilterBitmap(true);
@@ -1037,7 +1038,7 @@ public class MainActivity extends Activity {
                     c.drawOval(x-14*s,faceY-19*s,x+14*s,faceY+2*s,p);
                     c.drawOval(x-15*s,faceY-10*s,x-7*s,faceY+14*s,p);
                     c.drawOval(x+7*s,faceY-10*s,x+15*s,faceY+14*s,p); break;
-                case 5: case 9: case 17:
+                case 5: case 9:
                     c.drawOval(x-14*s,faceY-20*s,x+14*s,faceY-2*s,p);
                     p.setColor(ACCENT[ci]);
                     path.reset(); path.moveTo(x-10*s,faceY-18*s); path.lineTo(x-6*s,faceY-31*s);
