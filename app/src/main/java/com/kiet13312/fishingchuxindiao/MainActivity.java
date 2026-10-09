@@ -111,14 +111,16 @@ public class MainActivity extends Activity {
         // Roster combines the user's story cast with characters listed on the official game's public page.
         static final String[] CH = {
                 "Trương Tinh", "Đoàn Càn", "Sở Tâm", "Bá Thường", "Lão Ngô",
-                "Phi Thiên", "Sở Y Cựu", "Bắc Ninh", "Trường Không", "Tăng Thiên Quốc",
-                "Nam Cang", "Sở Tân", "Hạ Điếu Đế", "Long Điếu Hải", "Sử Phi Thiên"
+                "Phi Thiên", "Chu Sở Y Cựu", "Bắc Mộng", "Hề Tiểu", "Thiên Quốc",
+                "Nam Khổng", "Trần Bách Cường", "Hạ Điếu Đế", "Long Điếu Hải",
+                "Em họ", "Em trai", "Công Cô Câu", "Hào Đảo Đế", "Tiểu Đạo Sĩ"
         };
-        static final int[] CLV = {1, 1, 1, 1, 16, 60, 40, 20, 25, 30, 1, 10, 60, 70, 75};
+        static final int[] CLV = {1, 1, 1, 1, 16, 60, 40, 20, 10, 30, 1, 10, 60, 70, 1, 1, 1, 1, 1};
         static final String[] CHABIL = {
                 "Cần Linh Hoạt", "Liên Hoàn Kéo", "Xe Kéo", "Phi Thiên Vô Cực", "Phá Phủ Trầm Chu",
-                "Thiên Hành", "Cựu Pháp", "Bắc Đẩu", "Không Ảnh", "Quốc Sư",
-                "Nam Cang Điếu", "Thục Đạo Sơn", "Thục Đạo Sơn Điếu Pháp", "Long Hải Trấn", "Hành Không"
+                "Định Hải Thần Châm", "Cựu Pháp", "Bắc Đẩu", "Kỹ năng riêng", "Hộ tuyến dây câu",
+                "Nam Khổng Điếu Pháp", "Lực kéo bền", "Thục Đạo Sơn Điếu Pháp", "Long Hải Trấn",
+                "Hỗ trợ đồng đội", "Tăng lực kéo", "Kỹ năng riêng", "Kỹ năng riêng", "Thuần Dương Câu Pháp"
         };
         static final String[] MP = {"Bản đập Pá Đất", "Nước thải ô nhiễm", "Hắc Hổ", "Địa Đồ Lễ Hội", "Ngũ Hồ Sơn Lợi", "Thôn Quái", "Quán sau Nam Cương", "Bờ Biển", "Trường Bạch Sơn"};
         static final String[] MF = {"Ngựa lưng chừng", "Shark biển đỏ", "Cá chép tai bạc", "Cá lễ hội vàng", "Cá rồng hình rồng", "Ây ngư âm", "Kún", "Thủy quái bờ biển", "Cá Chép Râu Bạc"};
@@ -141,7 +143,7 @@ public class MainActivity extends Activity {
         final Random rnd = new Random();
         final SharedPreferences sp;
         final ArrayList<float[]> hit = new ArrayList<float[]>();
-        int scr, map, sel, tab, rod, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, fxChar, unl = 0x3FF, eqN;
+        int scr, map, sel, tab, rod, charPage, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, fxChar, unl = 0x3FF, eqN;
         int[] sk = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, team = {0, 1, 2}, eq = {0, 1, -1};
         long money = 500, xp, inv, bite, msgT, fxT, talkT, hitT, lastMs = System.currentTimeMillis();
         long totalWeightCaught;
@@ -304,10 +306,10 @@ public class MainActivity extends Activity {
                 int i = id - 20;
                 long cost = uc(i);
                 if (sk[i] >= 100) say("Đã mãn cấp"); else if (adminInfMoney || money >= cost) { if (!adminInfMoney) money -= cost; sk[i]++; } else say("Không đủ tiền");
-            } else if (id == 40) { if (money >= 100) { money -= 100; baits += 10; } else say("Không đủ tiền"); }
+            } else if (id == 40) { if (adminInfMoney || money >= 100) { if (!adminInfMoney) money -= 100; baits += 10; } else say("Không đủ tiền"); }
             else if (id == 41 || id == 63) { if (invN == 0) say("Kho đang trống"); else { money += inv; say("Đã bán cá +$" + inv); inv = 0; invN = 0; } }
             else if (id == 150) scr = LOBBY;
-            else if (id == 60) scr = CHAR;
+            else if (id == 60) { scr = CHAR; charPage = sel / 12; }
             else if (id == 61) { scr = UPG; tab = 0; }
             else if (id == 62) { scr = UPG; tab = 1; }
             else if (id == 70) { if (!gift) { gift = true; money += 800000; say("Nhận phúc lợi +800000"); } else say("Đã nhận rồi"); }
@@ -319,8 +321,10 @@ public class MainActivity extends Activity {
                 if (inTeam(sel)) {
                     for (int c = 0; c < CH.length; c++) if ((unl >> c & 1) == 1 && !inTeam(c)) { for (int j = 0; j < 3; j++) if (team[j] == sel) team[j] = c; break; }
                 } else team[eqN++ % 3] = sel;
-            } else if (id == 81) { if (money >= 50000) { money -= 50000; unl |= 1 << sel; } else say("Cần $50000 để mở khóa"); }
-            else if (id >= 100 && id < 100 + CH.length) sel = id - 100;
+            } else if (id == 81) { if (adminInfMoney || money >= 50000) { if (!adminInfMoney) money -= 50000; unl |= 1 << sel; say("Đã mở khóa " + CH[sel]); } else say("Cần $50000 để mở khóa"); }
+            else if (id == 82) { charPage = Math.max(0, charPage - 1); sel = charPage * 12; }
+            else if (id == 83) { charPage = Math.min((CH.length - 1) / 12, charPage + 1); sel = charPage * 12; }
+            else if (id >= 100 && id < 100 + CH.length) { sel = id - 100; charPage = sel / 12; }
             else if (id >= 200 && id < 209) {
                 if (lv() >= MLV[id - 200]) { map = id - 200; scr = TALK; talkT = now; } else say("Cần đạt Lv " + MLV[id - 200] + " mới vào được");
             } else if (id == 120) { scr = FISH; phase = 0; spot = false; }
@@ -505,14 +509,23 @@ public class MainActivity extends Activity {
         void chars(Canvas c, int w, int h) {
             btn(c, 150, "‹ Quay lại trang chủ", 10 * u, 10 * u, 220 * u, 52 * u, false);
             float cw = 120 * u;
-            for (int i = 0; i < CH.length; i++) {
-                float l = 18 * u + i % 3 * (cw + 8 * u), tp = 60 * u + i / 3 * 94 * u;
+            int start = charPage * 12, end = Math.min(CH.length, start + 12);
+            for (int i = start; i < end; i++) {
+                int local = i - start;
+                float l = 18 * u + local % 3 * (cw + 8 * u), tp = 60 * u + local / 3 * 94 * u;
                 hit.add(new float[]{l, tp, l + cw, tp + 86 * u, 100 + i});
                 box(c, l, tp, l + cw, tp + 86 * u, i == sel ? 0xFF3A4F5E : 0xFF18242C);
                 Fx.person(c, p, l + cw / 2, tp + 56 * u, u * .34f, i);
                 tx(c, CH[i], l + cw / 2, tp + 70 * u, 9, 0xFFFFFFFF, true);
-                tx(c, (inTeam(i) ? "Đang dùng " : "") + "Lv " + CLV[i], l + cw / 2, tp + 81 * u, 8, inTeam(i) ? 0xFFF2B931 : 0xFFCCCCCC, true);
+                boolean unlocked = (unl & (1 << i)) != 0;
+                tx(c, (inTeam(i) ? "Đang dùng " : unlocked ? "Lv " + CLV[i] : "Khóa") ,
+                        l + cw / 2, tp + 81 * u, 8,
+                        inTeam(i) ? 0xFFF2B931 : unlocked ? 0xFFCCCCCC : 0xFFFF7777, true);
             }
+            int pages = (CH.length + 11) / 12;
+            btn(c, 82, "‹ Trước", 18*u, h-48*u, 145*u, h-12*u, charPage > 0);
+            btn(c, 83, "Tiếp ›", 160*u, h-48*u, 287*u, h-12*u, charPage + 1 < pages);
+            tx(c, (charPage + 1) + " / " + pages, 300*u, h-24*u, 10, 0xFFFFFFFF, false);
             float rl = w * .52f;
             box(c, rl, 70 * u, w - 20 * u, h - 30 * u, 0xFF18242C);
             Fx.person(c, p, rl + 110 * u, 330 * u, u * 1.5f, sel);
@@ -523,7 +536,7 @@ public class MainActivity extends Activity {
             if ((unl >> sel & 1) == 1) btn(c, 80, inTeam(sel) ? "Hủy tham gia chiến đấu" : "Tham gia chiến đấu", rl + 230 * u, h - 110 * u, w - 40 * u, h - 56 * u, !inTeam(sel));
             else {
                 tx(c, "Phải đánh bại " + CH[11], rl + 230 * u, h - 130 * u, 13, 0xFFFF4040, false);
-                btn(c, 81, "Mở khóa $50000", rl + 230 * u, h - 110 * u, w - 40 * u, h - 56 * u, money >= 50000);
+                btn(c, 81, "Mở khóa $50000", rl + 230 * u, h - 110 * u, w - 40 * u, h - 56 * u, adminInfMoney || money >= 50000);
             }
         }
 
@@ -693,7 +706,7 @@ public class MainActivity extends Activity {
             for (int i = 0; i < 3; i++) {
                 float l = w / 2f - 215 * u + i * 145 * u;
                 int e = eq[i];
-                btn(c, 10 + i, e < 0 ? "(trống)" : SKN[e].length() > 14 ? SKN[e].substring(0, 14) + "." : SKN[e], l, h - 95 * u, l + 135 * u, h - 35 * u, e >= 0 && phase == 2 && cd[e] <= 0 && st >= SC[e]);
+                btn(c, 10 + i, e < 0 ? "(trống)" : SKN[e].length() > 14 ? SKN[e].substring(0, 14) + "." : SKN[e], l, h - 95 * u, l + 135 * u, h - 35 * u, e >= 0 && phase == 2 && cd[e] <= 0 && (adminInfStamina || st >= SC[e]));
                 if (e >= 0) tx(c, cd[e] > 0 ? (int) Math.ceil(cd[e]) + "s" : "-" + SC[e], l + 67 * u, h - 40 * u, 10, 0xFF1D2B33, true);
             }
             if (phase == 0) btn(c, 3, "Về sảnh", w - 290 * u, 10 * u, w - 120 * u, 52 * u, false);
@@ -717,7 +730,31 @@ public class MainActivity extends Activity {
 
 
     static final class Fx {
-        static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F, 0xFF245D98, 0xFFB8860B, 0xFF2D7958};
+        static final int[] BODY = {
+            0xFFC2452D, 0xFF9E4A2E, 0xFF247C8E, 0xFF6D3CA2, 0xFF765333,
+            0xFF284B9B, 0xFF263C56, 0xFF365C6B, 0xFFFF7A26, 0xFF9E7728,
+            0xFF27383C, 0xFF2C6196, 0xFFB58C35, 0xFF173A62, 0xFF3A8D58,
+            0xFFB7353D, 0xFF4E7650, 0xFF8B2632, 0xFFD0A53D};
+        static final int[] FACE = {
+            0xFFF6D2BE, 0xFFF2C8A6, 0xFFF9D6C5, 0xFFF0C8B1, 0xFFEBC3A5,
+            0xFFF8D9BC, 0xFFF4D0BC, 0xFFF1CDB6, 0xFFFFD2B5, 0xFFF6CEAE,
+            0xFFE8BFA1, 0xFFF2C8AA, 0xFFF5D3B0, 0xFFECC2A2, 0xFFF8D4B8,
+            0xFFF2C9AF, 0xFFE6B994, 0xFFF2C8A7, 0xFFF7D8C1};
+        static final int[] HAIR = {
+            0xFF3A2726, 0xFF2B201E, 0xFF28222A, 0xFFB8B9C5, 0xFFB6B7B2,
+            0xFF31262B, 0xFFBFC4CC, 0xFF293B42, 0xFFCB4B39, 0xFF5A3829,
+            0xFF27262D, 0xFF35282A, 0xFFE1C56B, 0xFF1B2633, 0xFF282327,
+            0xFF24232A, 0xFF79542E, 0xFF322626, 0xFF3A2D22};
+        static final int[] PANTS = {
+            0xFF33313A, 0xFF44343A, 0xFF202D35, 0xFF322C43, 0xFF554535,
+            0xFF222B45, 0xFF252B31, 0xFF293C44, 0xFF292A31, 0xFF41382D,
+            0xFF293239, 0xFF252D3A, 0xFF675034, 0xFF202B38, 0xFF33423C,
+            0xFF303039, 0xFF384137, 0xFF3F2B31, 0xFF4A4036};
+        static final int[] ACCENT = {
+            0xFFFFD37B, 0xFFD9A64A, 0xFFFFD36D, 0xFFE8D9C7, 0xFFE8BF6C,
+            0xFFFFD84A, 0xFF91C8DA, 0xFF94C3CC, 0xFFFFD2A0, 0xFFFFE17B,
+            0xFFD1B99C, 0xFFFFCA72, 0xFFFFE18A, 0xFF6DCDE3, 0xFFE0E7BB,
+            0xFFFFC4A2, 0xFFD3C084, 0xFFFFD451, 0xFFE8E1B0};
         static final Path path = new Path();
         static Bitmap TT_BITMAP;
         // Crops from the supplied character atlas (123 x 116). Each limb is
@@ -861,38 +898,192 @@ public class MainActivity extends Activity {
         }
 
         // (x, y) = chân. ang/len = góc và độ dài cần. lean nghiêng người, crouch ngồi xổm, armUp giơ tay, flex bắp tay, yell hét
-        static void pose(Canvas c, Paint p, float x, float y, float s, int i, float ang, float len, float lean, float crouch, float armUp, float flex, boolean yell) {
-            float L = 26 * (1 - .5f * crouch), bt = L + 50, hd = bt + 16, sh = bt - 8;
-            float hx = x + (10 - 8 * armUp) * s, hy = y - (sh - 16 + armUp * 45) * s;
+        static void pose(Canvas c, Paint p, float x, float y, float s, int i,
+                          float ang, float len, float lean, float crouch, float armUp,
+                          float flex, boolean yell) {
+            int ci = Math.floorMod(i, BODY.length);
+            float L = 26f * (1f - .5f * crouch), torso = L + 50f, headY = torso + 16f, sh = torso - 8f;
+            float hx = x + (10f - 8f * armUp) * s;
+            float hy = y - (sh - 16f + armUp * 45f) * s;
+            float faceY = y - headY * s;
             c.save();
             c.rotate(lean * 30f, x, y);
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(0x44000000); c.drawOval(x - 30 * s, y - 4 * s, x + 30 * s, y + 8 * s, p);
-            p.setColor(0xFF333333); c.drawRect(x - 11 * s, y - L * s, x - 2 * s, y, p); c.drawRect(x + 2 * s, y - L * s, x + 11 * s, y, p);
-            p.setColor(BODY[i % BODY.length]); c.drawRoundRect(x - 15 * s, y - bt * s, x + 15 * s, y - (L - 2) * s, 9 * s, 9 * s, p);
-            // Original uniform details distinguish the custom roster.
-            p.setStyle(Paint.Style.FILL);
-            p.setColor(i % 3 == 0 ? 0xFFEED49A : i % 3 == 1 ? 0xFF1F2630 : 0xFFB7D5E0);
-            if (i % 3 == 0) c.drawRect(x - 2*s, y - (bt-5)*s, x + 2*s, y - (L+3)*s, p);
-            else if (i % 3 == 1) c.drawCircle(x, y - (bt-16)*s, 3.2f*s, p);
-            else c.drawRoundRect(x - 8*s, y - (bt-8)*s, x + 8*s, y - (bt-15)*s, 2*s, 2*s, p);
-            p.setStrokeWidth(7 * s); p.setColor(0xFFF2C9A0);
-            c.drawLine(x + 12 * s, y - sh * s, hx, hy, p); c.drawLine(x - 12 * s, y - sh * s, hx - 4 * s, hy + 6 * s, p);
-            if (flex > 0) { c.drawCircle(x + 22 * s, y - (sh - 8) * s, 11 * s * flex, p); c.drawCircle(x - 22 * s, y - (sh - 8) * s, 11 * s * flex, p); }
-            c.drawCircle(x, y - hd * s, 15 * s, p);
-            p.setColor(i % 3 == 2 ? 0xFFD9D9D9 : 0xFF2A2230); c.drawCircle(x, y - (hd + 8) * s, 10 * s, p);
-            p.setColor(0xFF222222); c.drawCircle(x - 5 * s, y - hd * s, 1.8f * s, p); c.drawCircle(x + 5 * s, y - hd * s, 1.8f * s, p);
-            if (yell) {
-                c.drawRect(x - 5 * s, y - (hd - 7) * s, x + 5 * s, y - (hd - 12) * s, p);
-                p.setStrokeWidth(2 * s);
-                c.drawLine(x - 9 * s, y - (hd + 7) * s, x - 2 * s, y - (hd + 3) * s, p); c.drawLine(x + 9 * s, y - (hd + 7) * s, x + 2 * s, y - (hd + 3) * s, p);
+
+            // Shadow, trousers and boots.
+            p.setStyle(Paint.Style.FILL); p.setShader(null); p.setAlpha(255);
+            p.setColor(0x44000000); c.drawOval(x-30*s,y-4*s,x+30*s,y+8*s,p);
+            p.setColor(PANTS[ci]);
+            c.drawRoundRect(x-12*s,y-L*s,x-2*s,y+1*s,4*s,4*s,p);
+            c.drawRoundRect(x+2*s,y-L*s,x+12*s,y+1*s,4*s,4*s,p);
+            p.setColor(0xFF25252A);
+            c.drawRoundRect(x-14*s,y-2*s,x-1*s,y+4*s,3*s,3*s,p);
+            c.drawRoundRect(x+1*s,y-2*s,x+14*s,y+4*s,3*s,3*s,p);
+
+            // Character-specific coat, robe, hoodie or armor shape.
+            p.setColor(BODY[ci]);
+            c.drawRoundRect(x-19*s,y-torso*s,x+19*s,y-(L-2f)*s,8*s,8*s,p);
+            p.setColor(ACCENT[ci]);
+            switch (ci) {
+                case 1: // Đoàn Càn — warm coat with bright cross-body sash
+                    c.drawRoundRect(x-15*s,y-(torso-6)*s,x+15*s,y-(L+5)*s,5*s,5*s,p);
+                    p.setColor(0xFF6C3929); c.drawLine(x-12*s,y-(torso-8)*s,x+13*s,y-(L+8)*s,p);
+                    p.setColor(0xFFFFD978); c.drawCircle(x+4*s,y-(torso-19)*s,2.4f*s,p); break;
+                case 2: // Sở Tâm — jacket and scarf
+                    c.drawRect(x-2*s,y-(torso-4)*s,x+2*s,y-(L+5)*s,p);
+                    p.setColor(0xFFFFCF61); c.drawRoundRect(x-13*s,y-(torso-9)*s,x+13*s,y-(torso-18)*s,3*s,3*s,p); break;
+                case 3: // Bá Thường — layered robe
+                    path.reset(); path.moveTo(x-15*s,y-(torso-6)*s); path.lineTo(x,y-(torso-20)*s);
+                    path.lineTo(x+15*s,y-(torso-6)*s); path.lineTo(x+9*s,y-(L+6)*s);
+                    path.lineTo(x-9*s,y-(L+6)*s); path.close(); c.drawPath(path,p);
+                    p.setColor(0xFFE6E2D7); c.drawRect(x-2*s,y-(torso-16)*s,x+2*s,y-(L+7)*s,p); break;
+                case 4: // Lão Ngô — brown robe and belt
+                    c.drawRect(x-17*s,y-(L+13)*s,x+17*s,y-(L+7)*s,p);
+                    p.setColor(0xFFE7BF64); c.drawRoundRect(x-5*s,y-(L+14)*s,x+5*s,y-(L+6)*s,2*s,2*s,p); break;
+                case 5: // Phi Thiên — blue-gold armor
+                    c.drawRoundRect(x-16*s,y-(torso-5)*s,x+16*s,y-(torso-19)*s,5*s,5*s,p);
+                    p.setColor(0xFFFFD957); c.drawCircle(x,y-(torso-12)*s,3.3f*s,p);
+                    c.drawLine(x-5*s,y-(torso-5)*s,x-11*s,y-(L+6)*s,p);
+                    c.drawLine(x+5*s,y-(torso-5)*s,x+11*s,y-(L+6)*s,p); break;
+                case 6: // Chu Sở Y Cựu — dark cloak
+                    c.drawRoundRect(x-20*s,y-(torso-5)*s,x+20*s,y-(L+1)*s,9*s,9*s,p);
+                    p.setColor(0xFF8ECAD9); c.drawLine(x,y-(torso-7)*s,x,y-(L+5)*s,p); break;
+                case 7: // Bắc Mộng — hooded green-blue outfit
+                    c.drawRoundRect(x-19*s,y-(torso-4)*s,x+19*s,y-(L+1)*s,10*s,10*s,p);
+                    p.setColor(0xFF93B8BE); c.drawRect(x-11*s,y-(torso-10)*s,x+11*s,y-(torso-5)*s,p); break;
+                case 8: // Hề Tiểu — bright hoodie with front pocket
+                    c.drawRoundRect(x-12*s,y-(L+28)*s,x+12*s,y-(L+11)*s,4*s,4*s,p);
+                    p.setColor(0xFFFFD8A8); c.drawRoundRect(x-8*s,y-(L+25)*s,x+8*s,y-(L+17)*s,3*s,3*s,p); break;
+                case 9: // Thiên Quốc — gold chest emblem
+                    c.drawRoundRect(x-16*s,y-(torso-4)*s,x+16*s,y-(L+4)*s,6*s,6*s,p);
+                    p.setColor(0xFFFFE68D); c.drawCircle(x,y-(torso+L)*.5f*s,4*s,p); break;
+                case 10: // Nam Khổng — formal dark tunic
+                    c.drawRoundRect(x-13*s,y-(torso-6)*s,x+13*s,y-(L+4)*s,4*s,4*s,p);
+                    p.setColor(0xFFD8C5A3); c.drawRect(x-2*s,y-(torso-7)*s,x+2*s,y-(L+6)*s,p); break;
+                case 11: // Trần Bách Cường — jacket with contrasting collar
+                    c.drawRoundRect(x-16*s,y-(torso-4)*s,x+16*s,y-(L+4)*s,5*s,5*s,p);
+                    p.setColor(0xFFFFCB79); c.drawLine(x-9*s,y-(torso-5)*s,x,y-(torso-16)*s,p);
+                    c.drawLine(x+9*s,y-(torso-5)*s,x,y-(torso-16)*s,p); break;
+                case 12: // Hạ Điếu Đế — pale-gold robe
+                    c.drawRoundRect(x-20*s,y-(torso-4)*s,x+20*s,y-(L+1)*s,7*s,7*s,p);
+                    p.setColor(0xFFFFDE83); c.drawRect(x-3*s,y-(torso-7)*s,x+3*s,y-(L+4)*s,p); break;
+                case 13: // Long Điếu Hải — dark blue armor
+                    c.drawRoundRect(x-18*s,y-(torso-4)*s,x+18*s,y-(L+2)*s,6*s,6*s,p);
+                    p.setColor(0xFF72C8E0); c.drawCircle(x,y-(torso-14)*s,4*s,p); break;
+                case 14: // cousin — casual green jacket
+                    c.drawRoundRect(x-14*s,y-(L+29)*s,x+14*s,y-(L+8)*s,6*s,6*s,p);
+                    p.setColor(0xFFDBE5C2); c.drawRect(x-2*s,y-(L+27)*s,x+2*s,y-(L+10)*s,p); break;
+                case 15: // younger brother — red hoodie
+                    c.drawRoundRect(x-14*s,y-(L+28)*s,x+14*s,y-(L+7)*s,7*s,7*s,p);
+                    p.setColor(0xFFFFD2B0); c.drawRoundRect(x-7*s,y-(L+25)*s,x+7*s,y-(L+19)*s,2*s,2*s,p); break;
+                case 16: // fisherman uniform
+                    c.drawRoundRect(x-18*s,y-(torso-5)*s,x+18*s,y-(L+2)*s,5*s,5*s,p);
+                    p.setColor(0xFFD7C38A); c.drawRect(x-17*s,y-(torso-8)*s,x+17*s,y-(torso-4)*s,p); break;
+                case 17: // Hào Đảo Đế — royal red and gold
+                    c.drawRoundRect(x-18*s,y-(torso-5)*s,x+18*s,y-(L+2)*s,7*s,7*s,p);
+                    p.setColor(0xFFFFD34D); c.drawRect(x-3*s,y-(torso-8)*s,x+3*s,y-(L+3)*s,p); break;
+                case 18: // Tiểu Đạo Sĩ — layered Taoist robe
+                    c.drawRoundRect(x-19*s,y-(torso-5)*s,x+19*s,y-(L+2)*s,7*s,7*s,p);
+                    p.setColor(0xFFDBE8A6); c.drawRoundRect(x-8*s,y-(torso-10)*s,x+8*s,y-(torso-4)*s,3*s,3*s,p); break;
+                default:
+                    c.drawLine(x-2*s,y-(torso-7)*s,x+2*s,y-(L+5)*s,p);
             }
-            float a = (float) Math.toRadians(ang);
-            p.setStrokeWidth(3 * s); p.setColor(0xFF4A3A2A);
-            c.drawLine(hx, hy, hx + (float) Math.cos(a) * len * s, hy - (float) Math.sin(a) * len * s, p);
+
+            // Arms sit in front of the jacket. Sleeves and cuffs vary by character.
+            p.setStrokeWidth(8*s); p.setStrokeCap(Paint.Cap.ROUND);
+            p.setColor(BODY[ci]);
+            c.drawLine(x+12*s,y-sh*s,hx,hy,p);
+            c.drawLine(x-12*s,y-sh*s,hx-4*s,hy+6*s,p);
+            p.setStrokeWidth(5.5f*s); p.setColor(FACE[ci]);
+            c.drawLine(hx-2*s,hy,hx+2*s,hy,p);
+            c.drawLine(hx-6*s,hy+6*s,hx-2*s,hy+8*s,p);
+            if (flex > 0f) {
+                p.setStyle(Paint.Style.FILL); p.setColor(ACCENT[ci]);
+                c.drawCircle(x+22*s,y-(sh-8)*s,11*s*flex,p);
+                c.drawCircle(x-22*s,y-(sh-8)*s,11*s*flex,p);
+            }
+
+            // Face and ears.
+            p.setStyle(Paint.Style.FILL); p.setColor(FACE[ci]);
+            c.drawOval(x-17*s,faceY-15*s,x+17*s,faceY+17*s,p);
+            c.drawCircle(x-15*s,faceY+1*s,4*s,p); c.drawCircle(x+15*s,faceY+1*s,4*s,p);
+            p.setColor(0xFF3A2522);
+            c.drawOval(x-8*s,faceY-3*s,x-4*s,faceY+2*s,p);
+            c.drawOval(x+4*s,faceY-3*s,x+8*s,faceY+2*s,p);
+            p.setColor(0xFF352328); p.setStrokeWidth(2*s);
+            c.drawLine(x-10*s,faceY-7*s,x-4*s,faceY-8*s,p);
+            c.drawLine(x+4*s,faceY-8*s,x+10*s,faceY-7*s,p);
+            if (ci == 4 || ci == 10 || ci == 12 || ci == 13 || ci == 17) {
+                p.setColor(HAIR[ci]);
+                path.reset(); path.moveTo(x-10*s,faceY+5*s); path.lineTo(x,faceY+14*s);
+                path.lineTo(x+10*s,faceY+5*s); path.lineTo(x+7*s,faceY+17*s);
+                path.lineTo(x-7*s,faceY+17*s); path.close(); c.drawPath(path,p);
+                c.drawLine(x-5*s,faceY+5*s,x+5*s,faceY+5*s,p);
+            } else if (yell) {
+                p.setColor(0xFF4A2020); c.drawOval(x-4*s,faceY+5*s,x+4*s,faceY+12*s,p);
+            } else {
+                p.setColor(0xFF713D3D); c.drawLine(x-4*s,faceY+9*s,x+4*s,faceY+9*s,p);
+            }
+
+            // Distinct hair cuts, hats and head ornaments; all are original Canvas skins.
+            p.setColor(HAIR[ci]);
+            switch (ci) {
+                case 1: case 2: case 3: case 11: case 14: case 15:
+                    c.drawOval(x-14*s,faceY-17*s,x+14*s,faceY-1*s,p);
+                    path.reset(); path.moveTo(x-14*s,faceY-9*s);
+                    path.lineTo(x-7*s,faceY-25*s); path.lineTo(x-2*s,faceY-13*s);
+                    path.lineTo(x+5*s,faceY-27*s); path.lineTo(x+10*s,faceY-12*s);
+                    path.lineTo(x+15*s,faceY-7*s); path.close(); c.drawPath(path,p); break;
+                case 4: case 10: case 12: case 13: case 17:
+                    c.drawOval(x-14*s,faceY-19*s,x+14*s,faceY+2*s,p);
+                    c.drawOval(x-15*s,faceY-10*s,x-7*s,faceY+14*s,p);
+                    c.drawOval(x+7*s,faceY-10*s,x+15*s,faceY+14*s,p); break;
+                case 5: case 9: case 17:
+                    c.drawOval(x-14*s,faceY-20*s,x+14*s,faceY-2*s,p);
+                    p.setColor(ACCENT[ci]);
+                    path.reset(); path.moveTo(x-10*s,faceY-18*s); path.lineTo(x-6*s,faceY-31*s);
+                    path.lineTo(x,faceY-21*s); path.lineTo(x+5*s,faceY-32*s);
+                    path.lineTo(x+10*s,faceY-18*s); path.close(); c.drawPath(path,p); break;
+                case 7: case 16:
+                    p.setColor(ACCENT[ci]);
+                    c.drawOval(x-23*s,faceY-27*s,x+23*s,faceY-10*s,p);
+                    c.drawRoundRect(x-11*s,faceY-24*s,x+11*s,faceY-7*s,6*s,6*s,p); break;
+                case 8:
+                    c.drawOval(x-14*s,faceY-20*s,x+14*s,faceY-2*s,p);
+                    p.setColor(0xFFDA574A);
+                    c.drawOval(x-14*s,faceY-18*s,x+14*s,faceY-4*s,p); break;
+                case 18:
+                    c.drawOval(x-13*s,faceY-19*s,x+13*s,faceY-2*s,p);
+                    c.drawCircle(x,faceY-27*s,6*s,p);
+                    p.setColor(ACCENT[ci]); c.drawRect(x-7*s,faceY-27*s,x+7*s,faceY-24*s,p); break;
+                default:
+                    c.drawOval(x-14*s,faceY-20*s,x+14*s,faceY-2*s,p);
+            }
+
+            // Unique skin accents: crown, headband, hood line, fishing brim or cheek mark.
+            p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(2.8f*s);
+            if (ci == 3 || ci == 5 || ci == 9 || ci == 17) {
+                p.setColor(0xFFFFD54C);
+                path.reset(); path.moveTo(x-14*s,faceY-18*s); path.lineTo(x-9*s,faceY-28*s);
+                path.lineTo(x-3*s,faceY-19*s); path.lineTo(x+3*s,faceY-29*s);
+                path.lineTo(x+9*s,faceY-18*s); path.close(); c.drawPath(path,p);
+            } else if (ci == 6 || ci == 7 || ci == 11) {
+                p.setColor(ACCENT[ci]); c.drawLine(x-14*s,faceY-10*s,x+14*s,faceY-10*s,p);
+            } else if (ci == 16) {
+                p.setColor(0xFF6E4E2D); c.drawLine(x-22*s,faceY-12*s,x+22*s,faceY-12*s,p);
+            } else {
+                p.setColor(ACCENT[ci]); c.drawLine(x-12*s,faceY+14*s,x-7*s,faceY+10*s,p);
+            }
+
+            // Fishing pole remains visible in every skin pose.
+            float a = (float)Math.toRadians(ang);
+            p.setStyle(Paint.Style.STROKE); p.setStrokeCap(Paint.Cap.ROUND);
+            p.setStrokeWidth(3.2f*s); p.setColor(0xFF4A3A2A);
+            c.drawLine(hx,hy,hx+(float)Math.cos(a)*len*s,hy-(float)Math.sin(a)*len*s,p);
+            p.setStrokeWidth(1.2f*s); p.setColor(0xFFE8D5A4);
+            c.drawLine(hx,hy,hx+(float)Math.cos(a)*len*s,hy-(float)Math.sin(a)*len*s,p);
+            p.setStrokeCap(Paint.Cap.BUTT); p.setStyle(Paint.Style.FILL);
             c.restore();
         }
-
         static void cracks(Canvas c, Paint p, float u, float cx, float cy, float g) {
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(3 * u); p.setColor(0xFF2A1D14);
             for (int i = 0; i < 12; i++) {
