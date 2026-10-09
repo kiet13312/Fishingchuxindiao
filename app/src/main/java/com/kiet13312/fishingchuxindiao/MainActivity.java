@@ -107,9 +107,19 @@ public class MainActivity extends Activity {
 
 
     static class GameView extends View {
-        static final int LOBBY = 0, CHAR = 1, MAPS = 2, TALK = 3, UPG = 4, FISH = 5;
-        static final String[] CH = {"Trương Tinh", "Trần Bạch Cương", "Em họ", "Em trai", "Thương Không", "Ngất ngọt", "Công cô câu", "Bắc Mộng", "Thiên quốc", "Ông Cương", "Nam Khổng", "Hào Đảo Đế"};
-        static final int[] CLV = {1, 15, 60, 1, 16, 60, 1, 1, 60, 1, 0, 0};
+        static final int LOBBY = 0, CHAR = 1, MAPS = 2, TALK = 3, UPG = 4, FISH = 5, QUEST = 6;
+        // Roster combines the user's story cast with characters listed on the official game's public page.
+        static final String[] CH = {
+                "Trương Tinh", "Đoàn Càn", "Sở Tâm", "Bá Thường", "Lão Ngô",
+                "Phi Thiên", "Sở Y Cựu", "Bắc Ninh", "Trường Không", "Tăng Thiên Quốc",
+                "Nam Cang", "Sở Tân", "Hạ Điếu Đế", "Long Điếu Hải", "Sử Phi Thiên"
+        };
+        static final int[] CLV = {1, 1, 1, 1, 16, 60, 40, 20, 25, 30, 1, 10, 60, 70, 75};
+        static final String[] CHABIL = {
+                "Cần Linh Hoạt", "Liên Hoàn Kéo", "Xe Kéo", "Phi Thiên Vô Cực", "Phá Phủ Trầm Chu",
+                "Thiên Hành", "Cựu Pháp", "Bắc Đẩu", "Không Ảnh", "Quốc Sư",
+                "Nam Cang Điếu", "Thục Đạo Sơn", "Thục Đạo Sơn Điếu Pháp", "Long Hải Trấn", "Hành Không"
+        };
         static final String[] MP = {"Bản đập Pá Đất", "Nước thải ô nhiễm", "Hắc Hổ", "Địa Đồ Lễ Hội", "Ngũ Hồ Sơn Lợi", "Thôn Quái", "Quán sau Nam Cương", "Bờ Biển", "Trường Bạch Sơn"};
         static final String[] MF = {"Ngựa lưng chừng", "Shark biển đỏ", "Cá chép tai bạc", "Cá lễ hội vàng", "Cá rồng hình rồng", "Ây ngư âm", "Kún", "Thủy quái bờ biển", "Cá Chép Râu Bạc"};
         static final int[] MW = {30, 200, 2000, 5000, 12000, 50000, 120000, 500000, 1500000}, MLV = {1, 10, 20, 30, 40, 55, 70, 85, 95};
@@ -131,12 +141,15 @@ public class MainActivity extends Activity {
         final Random rnd = new Random();
         final SharedPreferences sp;
         final ArrayList<float[]> hit = new ArrayList<float[]>();
-        int scr, map, sel, tab, rod, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, unl = 0x3FF, eqN; // phase: 0 rảnh, 1 chờ cá, 2 đang kéo
+        int scr, map, sel, tab, rod, baits = 20, invN, phase, kg, ptr = -1, joyPtr = -1, fxWho = -1, fxChar, unl = 0x3FF, eqN;
         int[] sk = {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, team = {0, 1, 2}, eq = {0, 1, -1};
         long money = 500, xp, inv, bite, msgT, fxT, talkT, hitT, lastMs = System.currentTimeMillis();
+        long totalWeightCaught;
+        int totalCatches, totalSkills;
+        boolean[] questClaimed = new boolean[3];
         float hp = 1, hpMax = 1, dist, maxLine = 40, ten, st = 150, u = 1, t, jx, jy, fxDmg, hitD, zoom = 1, lx = .34f, ly = .88f;
         float[] cd = new float[18], px = {.34f, .26f, .18f}, py = {.88f, .88f, .88f};
-        boolean reel, spot, gift, fxSnd;
+        boolean reel, spot, gift, fxSnd, rareFish;
         // Debug/admin: vô hạn tiền + thể lực; có thể chỉnh HP/khối lượng cá.
         boolean adminInfMoney = true, adminInfStamina = true;
         long adminFishHp = -1L;
@@ -149,6 +162,10 @@ public class MainActivity extends Activity {
             Fx.initTT();
             money = sp.getLong("m", 500); xp = sp.getLong("x", 0); rod = sp.getInt("r", 0); baits = sp.getInt("b", 20);
             inv = sp.getLong("i", 0); invN = sp.getInt("n", 0); unl = sp.getInt("u", 0x3FF); gift = sp.getBoolean("g", false);
+            totalCatches = sp.getInt("catchTotal", 0);
+            totalWeightCaught = sp.getLong("weightTotal", 0L);
+            totalSkills = sp.getInt("skillsTotal", 0);
+            for (int i = 0; i < questClaimed.length; i++) questClaimed[i] = sp.getBoolean("qc" + i, false);
             for (int i = 0; i < 18; i++) sk[i] = sp.getInt("s" + i, i < 2 ? 1 : 0);
             for (int i = 0; i < 3; i++) { team[i] = sp.getInt("t" + i, i); eq[i] = sp.getInt("e" + i, i < 2 ? i : -1); }
             err = sp.getString("crash", null);
@@ -158,6 +175,8 @@ public class MainActivity extends Activity {
         void save() {
             SharedPreferences.Editor e = sp.edit();
             e.putLong("m", money).putLong("x", xp).putInt("r", rod).putInt("b", baits).putLong("i", inv).putInt("n", invN).putInt("u", unl).putBoolean("g", gift);
+            e.putInt("catchTotal", totalCatches).putLong("weightTotal", totalWeightCaught).putInt("skillsTotal", totalSkills);
+            for (int i = 0; i < questClaimed.length; i++) e.putBoolean("qc" + i, questClaimed[i]);
             for (int i = 0; i < 18; i++) e.putInt("s" + i, sk[i]);
             for (int i = 0; i < 3; i++) { e.putInt("t" + i, team[i]); e.putInt("e" + i, eq[i]); }
             e.apply();
@@ -226,21 +245,35 @@ public class MainActivity extends Activity {
 
         void win() {
             phase = 0; reel = false;
-            long v = (long) kg * (2 + map);
-            inv += v; invN++; xp += 15 + kg / 3; Snd.play(Snd.WIN);
-            say("Bắt được " + MF[map] + " " + kg + " lạng (+$" + v + ")");
+            long v = (long) kg * (2 + map) * (rareFish ? 3L : 1L);
+            inv += v; invN++; totalCatches++; totalWeightCaught += kg;
+            xp += 15 + kg / 3; Snd.play(Snd.WIN);
+            say((rareFish ? "CÁ HIẾM! " : "") + "Bắt được " + MF[map] + " " + kg + " lạng (+$" + v + ")");
+            save();
         }
 
         void skill(int slot) {
             int i = eq[slot];
             if (i < 0) return;
+            int caster = team[slot];
+            if ((i == 6 && caster != 3) || (i == 16 && caster != 4) || (i == 17 && caster != 2)) {
+                say(i == 6 ? "Phi Thiên Vô Cực cần Bá Thường" : i == 16 ? "Phá Phủ Trầm Chu cần Lão Ngô" : "Xe Kéo cần Sở Tâm");
+                return;
+            }
             if (phase != 2 || cd[i] > 0 || (!adminInfStamina && st < SC[i])) { say("Chưa dùng được chiêu"); return; }
-            if (!adminInfStamina) st -= SC[i]; cd[i] = 8;
-            float d = pw() * sm(i);
-            if (i % 3 == 0) dist = Math.max(0, dist - 8);
-            if (i % 3 == 2) ten = Math.max(5, ten - 30);
+            if (!adminInfStamina) st -= SC[i];
+            cd[i] = 8;
+            totalSkills++;
+            float d = pw() * sm(i) * (i == 17 ? 4.0f : 1.0f);
+            if (i == 17) {
+                dist = Math.max(0f, dist - 22f);
+                ten = Math.max(5f, ten - 35f);
+            } else {
+                if (i % 3 == 0) dist = Math.max(0, dist - 8);
+                if (i % 3 == 2) ten = Math.max(5, ten - 30);
+            }
             hp -= d;
-            fxWho = i; fxT = System.currentTimeMillis(); fxDmg = d; fxSnd = false; Snd.play(Snd.WHOOSH);
+            fxWho = i; fxChar = caster; fxT = System.currentTimeMillis(); fxDmg = d; fxSnd = false; Snd.play(Snd.WHOOSH);
             if (hp <= 0) win();
         }
 
@@ -253,11 +286,14 @@ public class MainActivity extends Activity {
                     if (baits <= 0) { say("Hết mồi, mua ở Cần câu & mồi"); return; }
                     baits--;
                     kg = adminFishKg > 0 ? adminFishKg : (int) (MW[map] * (.85f + rnd.nextFloat() * .3f));
+                    rareFish = adminFishKg <= 0 && rnd.nextFloat() < .08f;
+                    if (rareFish) kg *= 3;
                     hpMax = adminFishHp > 0 ? adminFishHp : 112f * (float) Math.pow(kg, .55);
                     hp = hpMax;
                     maxLine = 40 + rod * 15 + map * 6; dist = maxLine * .7f; ten = 20;
                     phase = 1; spot = true; bite = now + 1200 + rnd.nextInt(2500);
-                    say("Đã thả lưới..."); Snd.play(Snd.CAST);
+                    say(rareFish ? "CÁ HIẾM xuất hiện! Thưởng bán x3" : "Đã thả lưới...");
+                    Snd.play(Snd.CAST);
                 } else if (phase == 2) { reel = true; ptr = pt; }
             } else if (id == 3) { if (phase == 0) scr = LOBBY; }
             else if (id >= 10 && id < 13) skill(id - 10);
@@ -276,12 +312,15 @@ public class MainActivity extends Activity {
             else if (id == 62) { scr = UPG; tab = 1; }
             else if (id == 70) { if (!gift) { gift = true; money += 800000; say("Nhận phúc lợi +800000"); } else say("Đã nhận rồi"); }
             else if (id == 71) scr = MAPS;
+            else if (id == 72) scr = QUEST;
+            else if (id == 73) scr = LOBBY;
+            else if (id >= 500 && id < 503) claimQuest(id - 500);
             else if (id == 80) {
                 if (inTeam(sel)) {
-                    for (int c = 0; c < 12; c++) if ((unl >> c & 1) == 1 && !inTeam(c)) { for (int j = 0; j < 3; j++) if (team[j] == sel) team[j] = c; break; }
+                    for (int c = 0; c < CH.length; c++) if ((unl >> c & 1) == 1 && !inTeam(c)) { for (int j = 0; j < 3; j++) if (team[j] == sel) team[j] = c; break; }
                 } else team[eqN++ % 3] = sel;
             } else if (id == 81) { if (money >= 50000) { money -= 50000; unl |= 1 << sel; } else say("Cần $50000 để mở khóa"); }
-            else if (id >= 100 && id < 112) sel = id - 100;
+            else if (id >= 100 && id < 100 + CH.length) sel = id - 100;
             else if (id >= 200 && id < 209) {
                 if (lv() >= MLV[id - 200]) { map = id - 200; scr = TALK; talkT = now; } else say("Cần đạt Lv " + MLV[id - 200] + " mới vào được");
             } else if (id == 120) { scr = FISH; phase = 0; spot = false; }
@@ -293,6 +332,25 @@ public class MainActivity extends Activity {
                 else if (slot >= 0) eq[slot] = -1;
                 else { int f = -1; for (int j = 0; j < 3; j++) if (eq[j] < 0) { f = j; break; } if (f < 0) f = eqN++ % 3; eq[f] = i; }
             }
+            save();
+        }
+
+        int questProgress(int i) {
+            if (i == 0) return totalCatches;
+            if (i == 1) return (int)Math.min(Integer.MAX_VALUE, totalWeightCaught);
+            return totalSkills;
+        }
+
+        int questTarget(int i) { return i == 0 ? 3 : i == 1 ? 1000 : 5; }
+        long questReward(int i) { return i == 0 ? 5000L : i == 1 ? 12000L : 8000L; }
+
+        void claimQuest(int i) {
+            if (i < 0 || i >= questClaimed.length) return;
+            if (questClaimed[i]) { say("Nhiệm vụ này đã nhận thưởng"); return; }
+            if (questProgress(i) < questTarget(i)) { say("Chưa hoàn thành nhiệm vụ"); return; }
+            questClaimed[i] = true;
+            money += questReward(i);
+            say("Hoàn thành nhiệm vụ! +$" + questReward(i));
             save();
         }
 
@@ -396,6 +454,7 @@ public class MainActivity extends Activity {
             else if (scr == CHAR) chars(c, w, h);
             else if (scr == MAPS) maps(c, w, h);
             else if (scr == TALK) talk(c, w, h, now);
+            else if (scr == QUEST) quests(c, w, h);
             else upg(c, w, h);
             if (now < msgT) {
                 box(c, w * .2f, h * .22f + 60 * u, w * .8f, h * .22f + 100 * u, 0xD911181D);
@@ -437,6 +496,7 @@ public class MainActivity extends Activity {
             btn(c, 0, "Bảng xếp hạng", w - 190 * u, 70 * u, w - 10 * u, 112 * u, false);
             btn(c, 0, "Chợ giao dịch", w - 190 * u, 122 * u, w - 10 * u, 164 * u, false);
             btn(c, 0, "Phòng chat", w - 190 * u, 174 * u, w - 10 * u, 216 * u, false);
+            btn(c, 72, "Nhiệm vụ / thưởng", w - 190 * u, 226 * u, w - 10 * u, 268 * u, true);
             btn(c, 70, gift ? "Phúc lợi: đã nhận" : "Phúc lợi chơi game 800,000", 10 * u, h - 70 * u, 230 * u, h - 14 * u, !gift);
             p.setColor(0xFFD04A5A); c.drawOval(w - 330 * u, h - 100 * u, w - 200 * u, h - 50 * u, p);
             btn(c, 71, "Đi câu cá ›", w - 220 * u, h - 100 * u, w - 10 * u, h - 40 * u, true);
@@ -445,25 +505,43 @@ public class MainActivity extends Activity {
         void chars(Canvas c, int w, int h) {
             btn(c, 150, "‹ Quay lại trang chủ", 10 * u, 10 * u, 220 * u, 52 * u, false);
             float cw = 120 * u;
-            for (int i = 0; i < 12; i++) {
-                float l = 20 * u + i % 3 * (cw + 10 * u), tp = 70 * u + i / 3 * 112 * u;
-                hit.add(new float[]{l, tp, l + cw, tp + 104 * u, 100 + i});
-                box(c, l, tp, l + cw, tp + 104 * u, i == sel ? 0xFF3A4F5E : 0xFF18242C);
-                Fx.person(c, p, l + cw / 2, tp + 66 * u, u * .4f, i);
-                tx(c, CH[i], l + cw / 2, tp + 82 * u, 10, 0xFFFFFFFF, true);
-                tx(c, (inTeam(i) ? "Đã chiến đấu  " : "") + "Lv " + CLV[i], l + cw / 2, tp + 98 * u, 9, inTeam(i) ? 0xFFF2B931 : 0xFFCCCCCC, true);
+            for (int i = 0; i < CH.length; i++) {
+                float l = 18 * u + i % 3 * (cw + 8 * u), tp = 60 * u + i / 3 * 94 * u;
+                hit.add(new float[]{l, tp, l + cw, tp + 86 * u, 100 + i});
+                box(c, l, tp, l + cw, tp + 86 * u, i == sel ? 0xFF3A4F5E : 0xFF18242C);
+                Fx.person(c, p, l + cw / 2, tp + 56 * u, u * .34f, i);
+                tx(c, CH[i], l + cw / 2, tp + 70 * u, 9, 0xFFFFFFFF, true);
+                tx(c, (inTeam(i) ? "Đang dùng " : "") + "Lv " + CLV[i], l + cw / 2, tp + 81 * u, 8, inTeam(i) ? 0xFFF2B931 : 0xFFCCCCCC, true);
             }
             float rl = w * .52f;
             box(c, rl, 70 * u, w - 20 * u, h - 30 * u, 0xFF18242C);
             Fx.person(c, p, rl + 110 * u, 330 * u, u * 1.5f, sel);
             tx(c, CH[sel] + "   Lv " + CLV[sel], rl + 230 * u, 110 * u, 18, 0xFFF2B931, false);
-            tx(c, "Đua xe đua tốc độ: " + (30 + CLV[sel] * 3), rl + 230 * u, 150 * u, 13, 0xFFFFFFFF, false);
-            tx(c, "Giảm phụ cá: " + (160 + CLV[sel] * 8) + "%", rl + 230 * u, 176 * u, 13, 0xFFFFFFFF, false);
+            tx(c, "Kỹ năng riêng:", rl + 230 * u, 150 * u, 13, 0xFFFFFFFF, false);
+            tx(c, CHABIL[sel], rl + 230 * u, 176 * u, 13, 0xFFF2B931, false);
             tx(c, "Lực kéo cộng thêm: +" + CLV[sel] * 2, rl + 230 * u, 202 * u, 13, 0xFFFFFFFF, false);
             if ((unl >> sel & 1) == 1) btn(c, 80, inTeam(sel) ? "Hủy tham gia chiến đấu" : "Tham gia chiến đấu", rl + 230 * u, h - 110 * u, w - 40 * u, h - 56 * u, !inTeam(sel));
             else {
                 tx(c, "Phải đánh bại " + CH[11], rl + 230 * u, h - 130 * u, 13, 0xFFFF4040, false);
                 btn(c, 81, "Mở khóa $50000", rl + 230 * u, h - 110 * u, w - 40 * u, h - 56 * u, money >= 50000);
+            }
+        }
+
+        void quests(Canvas c, int w, int h) {
+            btn(c, 73, "‹ Quay lại sảnh", 10*u, 10*u, 175*u, 52*u, false);
+            tx(c, "NHIỆM VỤ & THÀNH TỰU", w/2f, 43*u, 18, 0xFFF2B931, true);
+            String[] names = {"Bắt 3 con cá", "Tổng trọng lượng cá đạt 1.000 lạng", "Dùng 5 kỹ năng"};
+            String[] desc = {"Bất kỳ bản đồ nào • thưởng tiền", "Cá càng lớn, tiến trình càng nhanh", "Trang bị kỹ năng trước khi ra câu"};
+            for (int i = 0; i < 3; i++) {
+                float top = (72 + i*132) * u;
+                box(c, 20*u, top, w-20*u, top+112*u, 0xFF18242C);
+                tx(c, names[i], 38*u, top+28*u, 14, 0xFFFFFFFF, false);
+                tx(c, desc[i], 38*u, top+50*u, 10, 0xFFB9C8D2, false);
+                tx(c, questProgress(i) + " / " + questTarget(i), 38*u, top+78*u, 12, 0xFFF2B931, false);
+                tx(c, "Thưởng $" + questReward(i), 38*u, top+98*u, 10, 0xFF45D687, false);
+                String label = questClaimed[i] ? "Đã nhận" : questProgress(i) >= questTarget(i) ? "Nhận thưởng" : "Chưa xong";
+                btn(c, 500+i, label, w-180*u, top+58*u, w-35*u, top+98*u,
+                     !questClaimed[i] && questProgress(i) >= questTarget(i));
             }
         }
 
@@ -586,8 +664,8 @@ public class MainActivity extends Activity {
             if (phase == 1) { p.setColor(0xFFE5413A); c.drawCircle(fx, fy, 7 * u, p); }
             if (phase == 2) {
                 float s = u * (.6f + .9f * (float) Math.sqrt(Math.min(1f, kg / 120000f)));
-                p.setColor(0xFF6843A5);
-                c.drawOval(fx - 40 * s, fy - 17 * s, fx + 36 * s, fy + 17 * s, p);
+                p.setColor(rareFish ? 0xFFFFD34A : 0xFF6843A5);
+                c.drawOval(fx - (rareFish ? 54 : 40) * s, fy - (rareFish ? 23 : 17) * s, fx + (rareFish ? 50 : 36) * s, fy + (rareFish ? 23 : 17) * s, p);
                 c.drawCircle(fx + 50 * s, fy, 14 * s, p);
                 if (now - hitT < 500) Fx.text(c, p, "-" + Fx.fmt((long) hitD), fx + 40 * u, fy - 50 * u - (now - hitT) * .08f * u, 20 * u, 0xFFFF5577);
             }
@@ -595,13 +673,13 @@ public class MainActivity extends Activity {
                 if (k >= 1f) fxWho = -1;
                 else {
                     if (k > .45f && !fxSnd) { fxSnd = true; Snd.play(Snd.BOOM); }
-                    Fx.draw(c, p, w, h, u, k, fxWho, SKN[fxWho], fx, fy, fxDmg, team[0]);
+                    Fx.draw(c, p, w, h, u, k, fxWho, SKN[fxWho], fx, fy, fxDmg, fxChar);
                 }
             }
             c.restore();
             hud(c, w, h);
             if (phase == 2) {
-                tx(c, MF[map] + " • " + kg + " lạng", w / 2f, 60 * u, 13, 0xFFFFFFFF, true);
+                tx(c, (rareFish ? "★ CÁ HIẾM • " : "") + MF[map] + " • " + kg + " lạng", w / 2f, 60 * u, 13, rareFish ? 0xFFFFD34A : 0xFFFFFFFF, true);
                 bar(c, w / 2f - 190 * u, 68 * u, w / 2f + 190 * u, 86 * u, hp / hpMax, 0xFFD9303A);
                 tx(c, Fx.fmt((long) Math.max(0, hp)) + " / " + Fx.fmt((long) hpMax), w / 2f, 82 * u, 11, 0xFFFFFFFF, true);
                 for (int i = 0; i < 24; i++) {
@@ -639,7 +717,7 @@ public class MainActivity extends Activity {
 
 
     static final class Fx {
-        static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F};
+        static final int[] BODY = {0xFFC2452D, 0xFF3B6EA5, 0xFF8A4A8A, 0xFF3F8F4A, 0xFFD9822B, 0xFF2E8B8B, 0xFFB5338A, 0xFF5B6B7A, 0xFF444444, 0xFF9C6B30, 0xFFEFEFEF, 0xFF7A1F1F, 0xFF245D98, 0xFFB8860B, 0xFF2D7958};
         static final Path path = new Path();
         static Bitmap TT_BITMAP;
         // Crops from the supplied character atlas (123 x 116). Each limb is
@@ -660,6 +738,8 @@ public class MainActivity extends Activity {
                            float pivotX, float pivotY, float angle) {
             c.save();
             c.rotate(angle, x + pivotX * scale, y + pivotY * scale);
+            p.setColor(0xFFFFFFFF);
+            p.setAlpha(255);
             p.setFilterBitmap(true);
             c.drawBitmap(TT_BITMAP, src,
                     new RectF(x + left * scale, y + top * scale,
@@ -790,6 +870,12 @@ public class MainActivity extends Activity {
             p.setColor(0x44000000); c.drawOval(x - 30 * s, y - 4 * s, x + 30 * s, y + 8 * s, p);
             p.setColor(0xFF333333); c.drawRect(x - 11 * s, y - L * s, x - 2 * s, y, p); c.drawRect(x + 2 * s, y - L * s, x + 11 * s, y, p);
             p.setColor(BODY[i % BODY.length]); c.drawRoundRect(x - 15 * s, y - bt * s, x + 15 * s, y - (L - 2) * s, 9 * s, 9 * s, p);
+            // Original uniform details distinguish the custom roster.
+            p.setStyle(Paint.Style.FILL);
+            p.setColor(i % 3 == 0 ? 0xFFEED49A : i % 3 == 1 ? 0xFF1F2630 : 0xFFB7D5E0);
+            if (i % 3 == 0) c.drawRect(x - 2*s, y - (bt-5)*s, x + 2*s, y - (L+3)*s, p);
+            else if (i % 3 == 1) c.drawCircle(x, y - (bt-16)*s, 3.2f*s, p);
+            else c.drawRoundRect(x - 8*s, y - (bt-8)*s, x + 8*s, y - (bt-15)*s, 2*s, 2*s, p);
             p.setStrokeWidth(7 * s); p.setColor(0xFFF2C9A0);
             c.drawLine(x + 12 * s, y - sh * s, hx, hy, p); c.drawLine(x - 12 * s, y - sh * s, hx - 4 * s, hy + 6 * s, p);
             if (flex > 0) { c.drawCircle(x + 22 * s, y - (sh - 8) * s, 11 * s * flex, p); c.drawCircle(x - 22 * s, y - (sh - 8) * s, 11 * s * flex, p); }
