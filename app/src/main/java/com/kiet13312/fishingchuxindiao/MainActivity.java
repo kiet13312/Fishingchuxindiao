@@ -598,7 +598,7 @@ public class MainActivity extends Activity {
                     tx(c, sk[i] == 0 ? "Chưa mở khóa" : sk[i] >= 100 ? "Lv 100" : "Lv " + sk[i], l + cw / 2, tp + 38 * u, 10, 0xFFF2B931, true);
                     tx(c, "Thể lực: " + SC[i], l + 6 * u, tp + 57 * u, 8, 0xFFCCCCCC, false);
                     tx(c, "Lực: " + (int) (pw() * sm(i)), l + 6 * u, tp + 73 * u, 8, 0xFFCCCCCC, false);
-                    btn(c, 20 + i, sk[i] >= 100 ? "Mãn cấp" : (sk[i] == 0 ? "Mở khóa $" : "Nâng cấp $") + uc(i), l + 5 * u, tp + 82 * u, l + cw - 5 * u, tp + 112 * u, sk[i] < 100 && money >= uc(i));
+                    btn(c, 20 + i, sk[i] >= 100 ? "Mãn cấp" : (sk[i] == 0 ? "Mở khóa $" : "Nâng cấp $") + uc(i), l + 5 * u, tp + 82 * u, l + cw - 5 * u, tp + 112 * u, sk[i] < 100 && (adminInfMoney || money >= uc(i)));
                     boolean on = eq[0] == i || eq[1] == i || eq[2] == i;
                     btn(c, 140 + i, on ? "Hủy" : "Cấu hình", l + 5 * u, tp + 118 * u, l + cw - 5 * u, tp + 145 * u, sk[i] > 0 && !on);
                 }
@@ -606,9 +606,9 @@ public class MainActivity extends Activity {
                 float cw = (w - 230 * u) / 4f;
                 for (int i = 0; i < 8; i++) {
                     float l = 185 * u + i % 4 * (cw + 6 * u), tp = 70 * u + i / 4 * 90 * u;
-                    btn(c, 300 + i, ROD[i] + " " + (i == rod ? "(đang dùng)" : i < rod ? "(dùng)" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || money >= RC[i]);
+                    btn(c, 300 + i, ROD[i] + " " + (i == rod ? "(đang dùng)" : i < rod ? "(dùng)" : "$" + RC[i]), l, tp, l + cw, tp + 76 * u, i <= rod || adminInfMoney || money >= RC[i]);
                 }
-                btn(c, 40, "Mua 10 mồi $100 (có " + baits + ")", 185 * u, 280 * u, 185 * u + 2 * cw, 340 * u, money >= 100);
+                btn(c, 40, "Mua 10 mồi $100 (có " + baits + ")", 185 * u, 280 * u, 185 * u + 2 * cw, 340 * u, adminInfMoney || money >= 100);
                 btn(c, 41, "Bán " + invN + " cá $" + inv, 197 * u + 2 * cw, 280 * u, 191 * u + 4 * cw, 340 * u, invN > 0);
             }
         }
