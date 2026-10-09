@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: fishingchuxindiao-android-build
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,6 +23,27 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      # Reuse one debug-signing key across CI builds so newer APKs can update
+      # an installed APK instead of failing with a signature mismatch.
+      - name: Restore persistent debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: fishingchuxindiao-debug-signing-key-v1
+
+      - name: Ensure debug signing key exists
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       - name: Build APK
         run: gradle assembleDebug
